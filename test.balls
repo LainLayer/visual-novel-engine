@@ -1,0 +1,23 @@
+header name "Bob's epic adventure";
+header languages "english" "russian";
+
+flag my_flag bool false;
+
+scene first_scene "My first epic scene" {
+    say "inside first scene";
+    say "another line inside the first scene";
+
+    goto second_scene;
+}
+
+scene second_scene "random texxt" {
+    say "inside second scene";
+    say "inside second scene again!";
+
+    goto third_scene;
+}
+
+scene third_scene "based epic" {
+    say "inside third scene";
+    end;
+}
