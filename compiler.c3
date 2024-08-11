@@ -113,7 +113,6 @@ List(<Scene>)  scenes;
 List(<Token>)  goto_promises;
 Token          current_token;
 
-
 fn bool has_flag(char[] name) @inline {
     foreach(Flag f : flags) {
         if (f.name == name) return true;
@@ -291,7 +290,7 @@ fn void eat_whitespace() {
 
 fn Token quick_single(TokenType token_type) {
     Token result = { .token_type = token_type, .location = tokenizing_location, .text_length = 1 };
-    bump_lexer();
+    bump_tokenizer();
     return result;
 }
 
