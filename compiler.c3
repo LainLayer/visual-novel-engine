@@ -45,6 +45,7 @@ enum TokenType : char {
 
 enum TypeType : char {
     BOOLEAN,
+    INTEGER,
 }
 
 struct Flag {
@@ -135,6 +136,8 @@ fn void print_syntax_tree() {
         switch(flag.flag_type) {
         case TypeType.BOOLEAN:
             printf("%s\n", flag.boolean_value);
+        case TypeType.INTEGER:
+            printf("%d\n", flag.integer_value);
         }
     }
 
@@ -224,6 +227,9 @@ fn Token parse_identifier() {
     case "bool":   result.token_type       = TokenType.TYPE;
                    result.type_value       = TypeType.BOOLEAN;
 
+    case "int" :   result.token_type       = TokenType.TYPE;
+                   result.type_value       = TypeType.INTEGER;
+
     default:       result.token_type       = TokenType.IDENTIFIER;
                    result.identifier_value = text;
     }
@@ -236,20 +242,16 @@ fn Token parse_number_literal() {
 
     result.location = tokenizing_location;
 
-    bump_tokenizer();
-    while(has_more_text() && is_numeric(file_data[tokenizing_cursor])) {
+    usz start = tokenizing_cursor;
+
+    do {
         bump_tokenizer();
-    }
+    } while(has_more_text() && is_numeric(file_data[tokenizing_cursor]));
 
     result.text_length = tokenizing_location.character - result.location.character;
     result.token_type  = TokenType.INTEGER_LITERAL;
 
-    char[128] buffer;
-
-    libc::memcpy(&buffer, &file_data[tokenizing_cursor - result.text_length], (usz)(result.text_length));
-    buffer[result.text_length] = '\0';
-
-    result.integer_value = libc::atoi(&buffer);
+    result.integer_value = ((String)file_data[start..tokenizing_cursor-1]).to_int()!!;
 
     return result;
 }
@@ -410,6 +412,8 @@ fn void parse_flag() {
     switch(flag.flag_type) {
     case TypeType.BOOLEAN:
         flag.boolean_value = expect(TokenType.BOOLEAN_LITERAL).boolean_value;
+    case TypeType.INTEGER:
+        flag.integer_value = expect(TokenType.INTEGER_LITERAL).integer_value;
     default:
         die("Unexpected type %s in flag declaration, likely unimplemented", flag.flag_type);
     }
@@ -425,6 +429,14 @@ fn bool has_scene_with_id(char[] id) {
     }
 
     return false;
+}
+
+fn usz get_index_of_scene_with_id(char[] id) {
+    assert(has_scene_with_id(id));
+    for(usz i = 0; i < scenes.size; i++) {
+        if(scenes[i].scene_id == id) return i;
+    }
+    unreachable();
 }
 
 fn Program! compile_file(String path) {
@@ -453,7 +465,40 @@ fn Program! compile_file(String path) {
         goto_promises.free();
     }
 
-    Program p;
+    Program program;
 
-    return p;
+    List(<InstructionIndex>) labels;
+
+    foreach(Scene scene : scenes) {
+        labels.push((InstructionIndex)program.instructions.size);
+
+        foreach(Action action : scene.actions) {
+            switch(action.action_type) {
+            case SAY:
+                program.instructions.push({
+                    .instruction_type = InstructionType.SHOW_TEXT,
+                    .text_to_show     = action.text_to_say,
+                    .blocking         = true,
+                    .has_undo_data    = false,
+                });
+            case GOTO:
+                program.instructions.push({
+                    .instruction_type = InstructionType.GOTO_LABEL,
+                    .label_to_go_to   = get_index_of_scene_with_id(action.scene_id),
+                    .blocking         = false,
+                    .has_undo_data    = false,
+                });
+            case END:
+                program.instructions.push({
+                    .instruction_type = InstructionType.END_SCENARIO,
+                    .blocking         = true,
+                    .has_undo_data    = false,
+                });
+            }
+        }
+    }
+
+    program.print();
+
+    return program;
 }

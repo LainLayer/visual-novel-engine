@@ -1,7 +1,10 @@
 header name "Bob's epic adventure";
 header languages "english" "russian";
 
-flag my_flag bool false;
+flag my_flag      bool false;
+flag other_flag   int  123;
+flag other_flag_a int  0;
+flag other_flag_b int  11;
 
 scene first_scene "My first epic scene" {
     say "inside first scene";
