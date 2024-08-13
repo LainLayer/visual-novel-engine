@@ -29,9 +29,11 @@ struct Instruction {
 
         /* GOTO_LABEL */
         struct {
-            usz label_to_go_to;
-
-            usz previous_instruction_pointer;
+            union {
+                InstructionIndex label_to_go_to;
+                usz              scene_index;
+            }
+            InstructionIndex previous_instruction_pointer;
         }
 
         /* END_SCENARIO */

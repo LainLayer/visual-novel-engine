@@ -202,10 +202,9 @@ fn Token parse_identifier() {
 
     result.location = tokenizing_location;
 
-    bump_tokenizer();
-    while(has_more_text() && (is_identifier_start_character(file_data[tokenizing_cursor]) || is_numeric(file_data[tokenizing_cursor]))) {
+    do {
         bump_tokenizer();
-    }
+    } while(has_more_text() && (is_identifier_start_character(file_data[tokenizing_cursor]) || is_numeric(file_data[tokenizing_cursor])));
 
     result.text_length = tokenizing_location.character - result.location.character;
     char[] text = file_data[(tokenizing_cursor-result.text_length)..tokenizing_cursor-1];
@@ -468,10 +467,10 @@ fn Program! compile_file(String path) {
     Program program;
 
     List(<InstructionIndex>) labels;
+    defer labels.free();
 
     foreach(Scene scene : scenes) {
         labels.push((InstructionIndex)program.instructions.size);
-
         foreach(Action action : scene.actions) {
             switch(action.action_type) {
             case SAY:
@@ -484,7 +483,7 @@ fn Program! compile_file(String path) {
             case GOTO:
                 program.instructions.push({
                     .instruction_type = InstructionType.GOTO_LABEL,
-                    .label_to_go_to   = get_index_of_scene_with_id(action.scene_id),
+                    .scene_index      = get_index_of_scene_with_id(action.scene_id),
                     .blocking         = false,
                     .has_undo_data    = false,
                 });
@@ -495,6 +494,12 @@ fn Program! compile_file(String path) {
                     .has_undo_data    = false,
                 });
             }
+        }
+    }
+
+    for(usz i = 0; i < program.instructions.size; i++) {
+        if(program.instructions[i].instruction_type == InstructionType.GOTO_LABEL) {
+            program.instructions.items[i].label_to_go_to = labels[program.instructions[i].scene_index];
         }
     }
 
