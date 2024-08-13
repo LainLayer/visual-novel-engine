@@ -42,8 +42,9 @@ struct Instruction {
 }
 
 struct Program {
-    InstructionIndex instruction_pointer;
+    InstructionIndex    instruction_pointer;
     List(<Instruction>) instructions;
+    List(<Instruction>) history;
 }
 
 fn void Program.print(program) {

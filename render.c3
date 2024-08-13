@@ -2,6 +2,9 @@ module render;
 
 import std::io;
 import std::math;
+
+import compiler;
+import vm;
 import raylib;
 
 struct TextAnimation {
@@ -9,6 +12,12 @@ struct TextAnimation {
     float step;
     char[] text;
 }
+
+TextAnimation text = {
+    .duration = 0.35,
+    .step     = 0.0,
+    .text     = ""
+};
 
 Rectangle textbox_rectangle;
 
@@ -30,9 +39,11 @@ fn Rectangle Rectangle.shrink(self, float n) @inline {
 
 fn void TextAnimation.render(&animation) {
     if(animation.step >= animation.duration) {
+        io::bprintf(&message_box_buffer, "%s", animation.text);
+        message_box_buffer[animation.text.len] = '\0';
         raylib::draw_text_boxed(
             raylib::get_font_default(),
-            (ZString)animation.text,
+            (ZString)&message_box_buffer,
             textbox_rectangle.shrink(TEXT_PADDING),
             FONT_SIZE,
             1,
@@ -72,35 +83,45 @@ fn void update_textbox_rectangle() @inline {
     };
 }
 
+fn void step_program(Program* program) {
+    program.instruction_pointer += 1;
+}
+
+fn bool render_current_program_state(Program* program) {
+    Instruction inst = program.instructions[(usz)program.instruction_pointer];
+    switch(inst.instruction_type) {
+    case InstructionType.SHOW_TEXT:
+        inst.previously_shown_text = text.text;
+        text.text = inst.text_to_show;
+        text.step = 0;
+    case InstructionType.GOTO_LABEL:
+        inst.previous_instruction_pointer = program.instruction_pointer;
+        program.instruction_pointer = inst.label_to_go_to;
+    case InstructionType.END_SCENARIO:
+        inst.previously_shown_text = text.text;
+        text.text = "END.";
+        text.step = 0;
+    }
+    inst.has_undo_data = true;
+    program.history.push(inst);
+    return inst.blocking;
+}
+
 fn void main() {
     io::printn("test!");
 
+    Program program = compiler::compile_file("test.balls")!!;
+    render_current_program_state(&program);
+
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     raylib::set_target_fps(60);
-
-    char[] short_text = "This is a short bit of text.";
-    char[] long_text = "A ball stretcher is a sex toy that is used to elongate the scrotum and provide a feeling of weight pulling the testicles away from the body. This can be particularly enjoyable for the wearer as it can make an orgasm more intense, as testicles are prevented from moving up. Intended to make one's testicles permanently hang much lower than before (if used regularly for extended periods of time), this sex toy can be potentially harmful to the genitals as the circulation of blood can be easily cut off if over-tightened. While leather stretchers are most common, other models consist of an assortment of steel rings that fastens with screws, causing additional but only mildly uncomfortable weight to the wearer's testicles. The length of the stretcher may vary from 2.5 to 10 centimetres (1 to 4 in).[5] A more dangerous type of ball stretcher can be home-made simply by wrapping rope or string around one's scrotum until it is eventually stretched to the desired length.";
-
-    bool is_short = true;
-
-    TextAnimation text = {
-        .duration = 0.35,
-        .step     = 0.0,
-        .text     = short_text
-    };
-
-    int a = raylib::measure_text("Hello Testing Text",   24);
-    int b = raylib::measure_text("Hello \nTesting Text", 24);
-
-    io::printf("a: %d, b: %d\n", a, b);
 
     while(!raylib::window_should_close()) {
         update_textbox_rectangle();
 
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
-            text.step = 0;
-            text.text = is_short ? long_text : short_text;
-            is_short = !is_short;
+            step_program(&program);
+            while(!render_current_program_state(&program));
         }
 
         raylib::begin_drawing();

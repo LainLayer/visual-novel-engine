@@ -8,13 +8,15 @@ RAYLIB_FLAGS=-I./raylib/src -I./raylib/src/external/glfw/include -DPLATFORM_DESK
 
 raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o
 
+c3_files := arena.c3 common.c3 compiler.c3 list.c3 vm.c3 raylib.c3
+
 all: main render
 
-main: arena.c3 common.c3 compiler.c3 list.c3 main.c3 vm.c3
-	$(C3C) compile $(C3CFLAGS) -o main arena.c3 common.c3 compiler.c3 list.c3 main.c3 vm.c3
+main: $(c3_files) main.c3
+	$(C3C) compile $(C3CFLAGS) main.c3 -o main arena.c3 common.c3 compiler.c3 list.c3 main.c3 vm.c3
 
-render: render.c3 raylib.c3 $(BUILD)/libraylib.a
-	$(C3C) compile $(C3CFLAGS) -o render render.c3 raylib.c3 -l $(BUILD)/libraylib.a
+render: $(c3_files) render.c3  $(BUILD)/libraylib.a
+	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a
 
 $(BUILD)/libraylib.a: $(raylib_objects)
 	ar rcs $(BUILD)/libraylib.a $(raylib_objects)

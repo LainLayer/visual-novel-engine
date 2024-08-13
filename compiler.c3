@@ -499,7 +499,11 @@ fn Program! compile_file(String path) {
 
     for(usz i = 0; i < program.instructions.size; i++) {
         if(program.instructions[i].instruction_type == InstructionType.GOTO_LABEL) {
-            program.instructions.items[i].label_to_go_to = labels[program.instructions[i].scene_index];
+
+            // @cleanup workaround for https://github.com/c3lang/c3c/issues/1357
+            // change to one line when this issue is fixed.
+            Instruction* goto_instruction   = &program.instructions[i];
+            goto_instruction.label_to_go_to = labels[program.instructions[i].scene_index];
         }
     }
 
