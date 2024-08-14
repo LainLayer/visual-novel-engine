@@ -188,6 +188,9 @@ extern fn CInt  get_glyph_index(Font, CInt)                               @exter
 extern fn void  draw_text_codepoint(Font, CInt, float[<2>], float, Color) @extern("DrawTextCodepoint");
 extern fn Font  get_font_default()                                        @extern("GetFontDefault");
 
+extern fn Texture2D load_texture(ZString)                      @extern("LoadTexture");
+extern fn void      draw_texture(Texture2D, CInt, CInt, Color) @extern("DrawTexture");
+
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
 {
     draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, WHITE, WHITE);

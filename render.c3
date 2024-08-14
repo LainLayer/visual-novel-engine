@@ -6,6 +6,7 @@ import std::math;
 import compiler;
 import vm;
 import raylib;
+import common;
 
 struct TextAnimation {
     float duration;
@@ -87,6 +88,11 @@ fn bool step_program(Program* program) {
         program.instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
         program.instruction_pointer = inst.label_to_go_to;
+    case InstructionType.SPAWN_SPRITE:
+        (&program.sprites[(usz)inst.sprite_index]).visible = true;
+        (&program.sprites[(usz)inst.sprite_index]).x       = inst.sprite_x;
+        (&program.sprites[(usz)inst.sprite_index]).y       = inst.sprite_y;
+        program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
         text.text = "END.";
@@ -99,19 +105,25 @@ fn bool step_program(Program* program) {
     return inst.blocking;
 }
 
-fn bool step_back(Program* program) {
+fn bool Program.last_instruction_blocking(program) {
     if(program.history.size < 2) return true;
+    return program.history[program.history.size - 1].blocking;
+}
+
+fn void step_back(Program* program) {
+    if(program.history.size < 2) return;
 
     Instruction inst = program.history.pop();
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
     case InstructionType.END_SCENARIO:
         text.text = inst.previously_shown_text;
+    case InstructionType.SPAWN_SPRITE:
+        (&program.sprites[(usz)inst.sprite_index]).visible = false;
     case InstructionType.GOTO_LABEL:
         break;
     }
     program.instruction_pointer = inst.previous_instruction_pointer;
-    return inst.blocking;
 }
 
 fn void main() {
@@ -124,6 +136,9 @@ fn void main() {
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
+
+    program.load_assets();
+
     raylib::set_target_fps(60);
 
     while(!raylib::window_should_close()) {
@@ -134,13 +149,21 @@ fn void main() {
             while(!step_program(&program));
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
-            while(!step_back(&program));
+            step_back(&program);
+            while(!program.last_instruction_blocking()) step_back(&program);
         }
 
         raylib::begin_drawing();
             raylib::clear_background({0x18, 0x18, 0x18, 255});
             raylib::draw_text("Sample Text!", 50, 50, 24, raylib::WHITE);
 
+            foreach(SpriteAsset sprite : program.sprites) {
+                if(sprite.visible) {
+                    raylib::draw_texture(sprite.texture, sprite.x, sprite.y, raylib::WHITE);
+                }
+            }
+
+            raylib::draw_rectangle_rec(textbox_rectangle, {0x11,0x11,0x11,255});
             raylib::draw_rectangle_lines_ex(textbox_rectangle, 5.0, raylib::WHITE);
             text.render();
 
