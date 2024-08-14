@@ -86,7 +86,6 @@ fn bool step_program(Program* program) {
         text.step = 0;
         program.instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
-        inst.previous_instruction_pointer = program.instruction_pointer;
         program.instruction_pointer = inst.label_to_go_to;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
