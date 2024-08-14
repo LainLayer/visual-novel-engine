@@ -9,6 +9,7 @@ flag other_flag_b int  11;
 scene first_scene "My first epic scene" {
     say "inside first scene";
     say "another line inside the first scene";
+    say "This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line";
 
     goto second_scene;
 }

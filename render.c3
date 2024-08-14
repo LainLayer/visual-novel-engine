@@ -27,6 +27,7 @@ const float FONT_SIZE   = 32.0;
 char[MAX_TEXT_SIZE] message_box_buffer;
 
 const float TEXT_PADDING = 20.0;
+const float LINE_SPACING = 5.0;
 
 fn Rectangle Rectangle.shrink(self, float n) @inline {
     return {
@@ -39,39 +40,28 @@ fn Rectangle Rectangle.shrink(self, float n) @inline {
 
 fn void TextAnimation.render(&animation) {
     if(animation.step >= animation.duration) {
-        io::bprintf(&message_box_buffer, "%s", animation.text);
-        message_box_buffer[animation.text.len] = '\0';
-        raylib::draw_text_boxed(
-            raylib::get_font_default(),
-            (ZString)&message_box_buffer,
-            textbox_rectangle.shrink(TEXT_PADDING),
-            FONT_SIZE,
-            1,
-            true,
-            raylib::WHITE
-        );
+        io::bprintf(&message_box_buffer, "%s\0", animation.text);
     } else {
-        animation.step += raylib::get_frame_time();
-        float percentage = animation.step / animation.duration;
-        uint chars_to_draw = (uint)math::ceil((float)animation.text.len * percentage);
+        animation.step     += raylib::get_frame_time();
+        float percentage    = animation.step / animation.duration;
+        uint  chars_to_draw = (uint)math::ceil((float)animation.text.len * percentage);
 
         if(chars_to_draw < 1)                      return;
-        if(chars_to_draw > animation.text.len - 1) chars_to_draw = animation.text.len-1;
-        if(chars_to_draw > MAX_TEXT_SIZE - 1)      chars_to_draw = MAX_TEXT_SIZE - 1;
+        if(chars_to_draw > animation.text.len - 1) chars_to_draw = animation.text.len - 1;
+        if(chars_to_draw > MAX_TEXT_SIZE - 1)      chars_to_draw = MAX_TEXT_SIZE      - 1;
 
         message_box_buffer[0..chars_to_draw-1] = animation.text[0..chars_to_draw-1];
         message_box_buffer[chars_to_draw] = '\0';
-
-        raylib::draw_text_boxed(
-            raylib::get_font_default(),
-            (ZString)&message_box_buffer,
-            textbox_rectangle.shrink(TEXT_PADDING),
-            FONT_SIZE,
-            1,
-            true,
-            raylib::WHITE
-        );
     }
+    raylib::draw_text_boxed(
+        raylib::get_font_default(),
+        (ZString)&message_box_buffer,
+        textbox_rectangle.shrink(TEXT_PADDING),
+        FONT_SIZE,
+        LINE_SPACING,
+        true,
+        raylib::WHITE
+    );
 }
 
 fn void update_textbox_rectangle() @inline {
@@ -83,17 +73,18 @@ fn void update_textbox_rectangle() @inline {
     };
 }
 
-fn void step_program(Program* program) {
-    program.instruction_pointer += 1;
-}
-
-fn bool render_current_program_state(Program* program) {
+fn bool step_program(Program* program) {
     Instruction inst = program.instructions[(usz)program.instruction_pointer];
+    InstructionIndex old_instruction_pointer = program.instruction_pointer;
+
+    bool no_push = false;
+
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
         inst.previously_shown_text = text.text;
         text.text = inst.text_to_show;
         text.step = 0;
+        program.instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
         inst.previous_instruction_pointer = program.instruction_pointer;
         program.instruction_pointer = inst.label_to_go_to;
@@ -101,9 +92,26 @@ fn bool render_current_program_state(Program* program) {
         inst.previously_shown_text = text.text;
         text.text = "END.";
         text.step = 0;
+        no_push = (program.history[program.history.size - 1].instruction_type == InstructionType.END_SCENARIO);
     }
     inst.has_undo_data = true;
-    program.history.push(inst);
+    inst.previous_instruction_pointer = old_instruction_pointer;
+    if(!no_push) program.history.push(inst);
+    return inst.blocking;
+}
+
+fn bool step_back(Program* program) {
+    if(program.history.size < 2) return true;
+
+    Instruction inst = program.history.pop();
+    switch(inst.instruction_type) {
+    case InstructionType.SHOW_TEXT:
+    case InstructionType.END_SCENARIO:
+        text.text = inst.previously_shown_text;
+    case InstructionType.GOTO_LABEL:
+        break;
+    }
+    program.instruction_pointer = inst.previous_instruction_pointer;
     return inst.blocking;
 }
 
@@ -111,17 +119,23 @@ fn void main() {
     io::printn("test!");
 
     Program program = compiler::compile_file("test.balls")!!;
-    render_current_program_state(&program);
+    step_program(&program);
+
+    io::printf("instruction size: %d\n", $sizeof(Instruction.typeid));
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
+    defer raylib::close_window();
     raylib::set_target_fps(60);
 
     while(!raylib::window_should_close()) {
         update_textbox_rectangle();
 
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
-            step_program(&program);
-            while(!render_current_program_state(&program));
+            io::printn("steping forward");
+            while(!step_program(&program));
+        } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
+            io::printn("steping backwards");
+            while(!step_back(&program));
         }
 
         raylib::begin_drawing();
@@ -134,5 +148,4 @@ fn void main() {
         raylib::end_drawing();
     }
 
-    raylib::close_window();
 }

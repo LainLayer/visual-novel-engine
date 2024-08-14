@@ -19,6 +19,8 @@ struct Instruction {
         bool blocking;
     }
 
+    InstructionIndex previous_instruction_pointer;
+
     union {
         /* SHOW_TEXT */
         struct {
@@ -28,12 +30,9 @@ struct Instruction {
         }
 
         /* GOTO_LABEL */
-        struct {
-            union {
-                InstructionIndex label_to_go_to;
-                usz              scene_index;
-            }
-            InstructionIndex previous_instruction_pointer;
+        union {
+            InstructionIndex label_to_go_to;
+            usz              scene_index;
         }
 
         /* END_SCENARIO */
