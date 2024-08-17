@@ -1,9 +1,13 @@
 header name "Bob's epic adventure";
 header languages "english" "russian";
 
-sprite nika "test_assets/illyustraciya_bez_nazvaniya.png"   shy
-            "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
-            "test_assets/illyustraciya_bez_nazvaniya_2.png" normal;
+character nika "test_assets/illyustraciya_bez_nazvaniya_2.png" normal
+               "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
+               "test_assets/illyustraciya_bez_nazvaniya.png"   shy;
+
+character nikab "test_assets/illyustraciya_bez_nazvaniya_2.png" normal
+                "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
+                "test_assets/illyustraciya_bez_nazvaniya.png"   shy;
 
 flag my_flag      bool false;
 flag other_flag   int  123;
@@ -14,7 +18,16 @@ scene first_scene "My first epic scene" {
     say "inside first scene";
 
     spawn nika happy 0 0;
-    say "spawning a sprite!";
+    say "spawning a happy sprite!";
+
+    spawn nika shy 0 0;
+    say "spawning a shy sprite!";
+
+    spawn nika normal 0 0;
+    say "spawning a normal sprite!";
+
+    spawn nikab happy 800 0;
+    say "spawning a second sprite!";
 
     say "This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line";
 

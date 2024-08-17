@@ -12,9 +12,6 @@ c3_files := arena.c3 common.c3 compiler.c3 list.c3 vm.c3 raylib.c3
 
 all: render
 
-# main: $(c3_files) main.c3
-# 	$(C3C) compile $(C3CFLAGS) main.c3 -o main arena.c3 common.c3 compiler.c3 list.c3 main.c3 vm.c3
-
 render: $(c3_files) render.c3  $(BUILD)/libraylib.a
 	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a
 

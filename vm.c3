@@ -1,5 +1,6 @@
 module vm;
 
+import std::collections::map;
 import std::io;
 import list;
 import common;
@@ -11,16 +12,16 @@ enum InstructionType : char {
     SHOW_TEXT,
     GOTO_LABEL,
     END_SCENARIO,
-    SPAWN_SPRITE,
+
+    CHARACTER_VISIBILITY_SET,
+    CHARACTER_POSITION,
+    CHARACTER_EMOTE,
 }
 
 struct Instruction {
     InstructionType instruction_type;
 
-    bitstruct : char {
-        bool has_undo_data;
-        bool blocking;
-    }
+    bool blocking;
 
     InstructionIndex previous_instruction_pointer;
 
@@ -37,11 +38,28 @@ struct Instruction {
             usz              scene_index;
         }
 
-        /* SPAWN_SPRITE */
         struct {
-            SpriteIndex sprite_index;
-            int         sprite_x;
-            int         sprite_y;
+            char[] character_name;
+
+            union {
+                /* CHARACTER_VISIBILITY_SET */
+                struct {
+                    bool   set_visibility_to;
+                    bool   previous_visibility;
+                }
+
+                /* CHARACTER_POSITION */
+                struct {
+                    Vector2 set_position_to;
+                    Vector2 previous_position;
+                }
+
+                /* CHARACTER_EMOTE */
+                struct {
+                    char[] set_emotion_to;
+                    char[] previous_emotion;
+                }
+            }
         }
 
         /* END_SCENARIO */
@@ -54,7 +72,7 @@ struct Program {
     List(<Instruction>) instructions;
     List(<Instruction>) history;
 
-    List(<SpriteAsset>) sprites;
+    HashMap(<char[], Character>) character_table;
 }
 
 fn void Program.print(program) {
@@ -65,13 +83,12 @@ fn void Program.print(program) {
             io::printf("%s\n", instruction.text_to_show);
         case InstructionType.GOTO_LABEL:
             io::printf("%d\n", (usz)instruction.label_to_go_to);
-        case InstructionType.SPAWN_SPRITE:
-            io::printf(
-                "sprite index %d, x: %d, y: %d\n",
-                instruction.sprite_index,
-                instruction.sprite_x,
-                instruction.sprite_y
-            );
+        case InstructionType.CHARACTER_VISIBILITY_SET:
+            io::printf("visibility: %s\n", instruction.set_visibility_to);
+        case InstructionType.CHARACTER_POSITION:
+            io::printf("position: %s\n", instruction.set_position_to);
+        case InstructionType.CHARACTER_EMOTE:
+            io::printf("emotion: %s\n", instruction.set_emotion_to);
         case InstructionType.END_SCENARIO:
             break;
         }
@@ -79,10 +96,17 @@ fn void Program.print(program) {
 }
 
 fn void Program.load_assets(&program) {
-    for(usz i = 0; i < program.sprites.size; i++) {
-        char[2048] buffer;
-        io::bprintf(&buffer, "%s\0", program.sprites[i].filename);
-        SpriteAsset* asset = &program.sprites[i];
-        asset.texture = raylib::load_texture((ZString)&buffer);
-    }
+    program.character_table.@each(; char[] name, Character character) {
+        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
+            char[2048] buffer;
+            io::bprintf(&buffer, "%s\0", sprite_data.filename);
+
+            Character temp_character = program.character_table[name]!!;
+            SpriteData temp_sprite_data = temp_character.emotion_sprite_table[emotion]!!;
+            temp_sprite_data.texture = raylib::load_texture((ZString)&buffer);
+            temp_character.emotion_sprite_table[emotion] = temp_sprite_data;
+            program.character_table[name] = temp_character;
+
+        };
+    };
 }

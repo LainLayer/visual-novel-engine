@@ -12,6 +12,7 @@ import common;
 import vm;
 import arena;
 import list;
+import raylib;
 
 enum TokenType : char {
     INVALID_TOKEN,
@@ -40,7 +41,7 @@ enum TokenType : char {
     KEYWORD_FLAG,
     KEYWORD_GOTO,
     KEYWORD_END,
-    KEYWORD_SPRITE,
+    KEYWORD_CHARACTER,
     KEYWORD_SPAWN,
 
     EOF
@@ -98,9 +99,9 @@ struct Action {
         char[] text_to_say;
         char[] scene_id;
         struct {
-            SpriteIndex sprite_index;
-            int x;
-            int y;
+            char[]  character_name;
+            char[]  emotion_name;
+            Vector2 position;
         }
     }
 }
@@ -124,8 +125,7 @@ List(<Scene>)  scenes;
 List(<Token>)  goto_promises;
 Token          current_token;
 
-List(<SpriteAsset>)     sprites;
-List(<CharacterSprite>) characters;
+HashMap(<char[], Character>) character_table;
 
 fn bool has_flag(char[] name) @inline {
     foreach(Flag f : flags) {
@@ -139,15 +139,11 @@ fn void print_syntax_tree() {
     printf("scenario title: %s\n", scenario_title);
     printn("scenario languages:");
 
-    foreach(CharacterSprite character : characters) {
-        character.sprite_map.@each(; char[] key, SpriteIndex value) {
-            io::printf("%s[%s] -> %s\n",
-                character.name,
-                key,
-                sprites[(usz)value].filename
-            );
+    character_table.@each(; char[] name, Character character) {
+        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
+            printf("%s[%s] -> '%s'\n", name, emotion, sprite_data.filename);
         };
-    }
+    };
 
     foreach(char[] language : languages) {
         printf(" - %s\n", language);
@@ -173,7 +169,7 @@ fn void print_syntax_tree() {
             case ActionType.SAY:   printf("%s\n", action.text_to_say);
             case ActionType.GOTO:  printf("%s\n", action.scene_id);
             case ActionType.END:   printf("end\n");
-            case ActionType.SPAWN: printf("sprite index %d, x: %d, y: %d\n", action.sprite_index, action.x, action.y);
+            case ActionType.SPAWN: printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
             }
         }
     }
@@ -231,19 +227,19 @@ fn Token parse_identifier() {
     char[] text = file_data[(tokenizing_cursor-result.text_length)..tokenizing_cursor-1];
 
     switch(text) {
-    case "header": result.token_type = TokenType.KEYWORD_HEADER;
-    case "sprite": result.token_type = TokenType.KEYWORD_SPRITE;
-    case "spawn":  result.token_type = TokenType.KEYWORD_SPAWN;
-    case "scene":  result.token_type = TokenType.KEYWORD_SCENE;
-    case "flag":   result.token_type = TokenType.KEYWORD_FLAG;
-    case "goto":   result.token_type = TokenType.KEYWORD_GOTO;
-    case "say":    result.token_type = TokenType.KEYWORD_SAY;
-    case "end":    result.token_type = TokenType.KEYWORD_END;
-    case "true":   result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
-    case "false":  result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
-    case "bool":   result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
-    case "int" :   result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
-    default:       result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
+    case "character": result.token_type = TokenType.KEYWORD_CHARACTER;
+    case "header":    result.token_type = TokenType.KEYWORD_HEADER;
+    case "spawn":     result.token_type = TokenType.KEYWORD_SPAWN;
+    case "scene":     result.token_type = TokenType.KEYWORD_SCENE;
+    case "flag":      result.token_type = TokenType.KEYWORD_FLAG;
+    case "goto":      result.token_type = TokenType.KEYWORD_GOTO;
+    case "say":       result.token_type = TokenType.KEYWORD_SAY;
+    case "end":       result.token_type = TokenType.KEYWORD_END;
+    case "true":      result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
+    case "false":     result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
+    case "bool":      result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
+    case "int" :      result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
+    default:          result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
     }
 
     return result;
@@ -369,14 +365,6 @@ fn void parse_header() {
     }
 }
 
-fn usz index_of_character_with_name(char[] name) {
-    for(usz i = 0; i < characters.size; i++) {
-        if(characters[i].name == name) return i;
-    }
-
-    die("Unknown sprite with name %s", name);
-}
-
 fn void parse_scene() {
     Scene scene;
 
@@ -409,16 +397,14 @@ fn void parse_scene() {
             expect(TokenType.SEMICOLON);
         case TokenType.KEYWORD_SPAWN:
             action.action_type = ActionType.SPAWN;
-            char[] name = expect(TokenType.IDENTIFIER).identifier_value;
-
-            usz character_index = index_of_character_with_name(name);
-
+            char[] name    = expect(TokenType.IDENTIFIER).identifier_value;
             char[] emotion = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(try SpriteIndex sprite_index = characters[character_index].sprite_map[emotion]) {
-                action.sprite_index = sprite_index;
-                action.x = expect(TokenType.INTEGER_LITERAL).integer_value;
-                action.y = expect(TokenType.INTEGER_LITERAL).integer_value;
+            if(character_table.has_key(name) && character_table[name]!!.emotion_sprite_table.has_key(emotion)) {
+                action.character_name = name;
+                action.emotion_name   = emotion;
+                action.position.x     = expect(TokenType.INTEGER_LITERAL).integer_value;
+                action.position.y     = expect(TokenType.INTEGER_LITERAL).integer_value;
             } else {
                 die("Unknown emotion %s emotion for character %s", emotion, name);
             }
@@ -461,9 +447,7 @@ fn void parse_flag() {
     flags.push(flag);
 }
 
-fn void parse_sprite() {
-    CharacterSprite sprite;
-    sprite.sprite_map.new_init();
+fn void parse_character() {
 
     char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
@@ -478,21 +462,27 @@ fn void parse_sprite() {
                 break;
             }
         } else if(current_token.token_type == TokenType.STRING_LITERAL) {
-            char[] filename = current_token.string_value;
+            char[] filename = current_token.string_value; // @cleanup validate filename
             char[] emotion  = expect(TokenType.IDENTIFIER).identifier_value;
 
-            sprites.push({ .visible = false, .filename = filename });
+            if(character_table.has_key(character_name) && character_table[character_name]!!.emotion_sprite_table.has_key(emotion)) {
+                die("Redefinition of emotion '%s' for character '%s'", emotion, character_name);
+            }
 
-            sprite.sprite_map[emotion] = (SpriteIndex)(sprites.size - 1);
-            sprite.name = character_name;
+            if(!character_table.has_key(character_name)) {
+                character_table[character_name] = Character { .visible = false, .current_emotion = emotion };
+            }
+
+            // character_table[character_name]!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
+            Character temp_character = character_table[character_name]!!;
+            temp_character.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
+            character_table[character_name] = temp_character;
 
             count++;
         } else {
             die("Unexpected token %s in character sprite declaration", current_token.token_type);
         }
     }
-
-    characters.push(sprite);
 }
 
 fn bool has_scene_with_id(char[] id) {
@@ -520,11 +510,11 @@ fn Program! compile_file(String path) {
         switch(current_token.token_type) {
         // each parse function must finish on it's last token,
         // since the for loop calls lexer.bump() at the end
-        case TokenType.KEYWORD_HEADER: parse_header();
-        case TokenType.KEYWORD_SCENE:  parse_scene();
-        case TokenType.KEYWORD_FLAG:   parse_flag();
-        case TokenType.KEYWORD_SPRITE: parse_sprite();
-        default:                       die("unknown token %s", current_token.token_type);
+        case TokenType.KEYWORD_HEADER:    parse_header();
+        case TokenType.KEYWORD_SCENE:     parse_scene();
+        case TokenType.KEYWORD_FLAG:      parse_flag();
+        case TokenType.KEYWORD_CHARACTER: parse_character();
+        default:                          die("unknown token %s", current_token.token_type);
         }
     }
 
@@ -554,30 +544,40 @@ fn Program! compile_file(String path) {
                     .instruction_type = InstructionType.SHOW_TEXT,
                     .text_to_show     = action.text_to_say,
                     .blocking         = true,
-                    .has_undo_data    = false,
                 });
             case GOTO:
                 program.instructions.push({
                     .instruction_type = InstructionType.GOTO_LABEL,
                     .scene_index      = get_index_of_scene_with_id(action.scene_id),
                     .blocking         = false,
-                    .has_undo_data    = false,
                 });
             case END:
                 program.instructions.push({
                     .instruction_type = InstructionType.END_SCENARIO,
                     .blocking         = true,
-                    .has_undo_data    = false,
                 });
             case SPAWN:
                 program.instructions.push({
-                    .instruction_type = InstructionType.SPAWN_SPRITE,
-                    .sprite_index     = action.sprite_index,
-                    .sprite_x         = action.x,
-                    .sprite_y         = action.y,
-                    .blocking         = false,
-                    .has_undo_data    = false,
+                    .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
+                    .character_name    = action.character_name,
+                    .set_visibility_to = true,
+                    .blocking          = false,
                 });
+
+                program.instructions.push({
+                    .instruction_type = InstructionType.CHARACTER_POSITION,
+                    .character_name    = action.character_name,
+                    .set_position_to  = action.position,
+                    .blocking         = false,
+                });
+
+                program.instructions.push({
+                    .instruction_type = InstructionType.CHARACTER_EMOTE,
+                    .character_name    = action.character_name,
+                    .set_emotion_to   = action.emotion_name,
+                    .blocking         = false,
+                });
+
             }
         }
     }
@@ -592,7 +592,7 @@ fn Program! compile_file(String path) {
         }
     }
 
-    program.sprites = sprites;
+    program.character_table = character_table;
 
     program.print();
 

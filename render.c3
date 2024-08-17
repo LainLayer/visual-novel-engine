@@ -87,10 +87,29 @@ fn bool step_program(Program* program) {
         program.instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
         program.instruction_pointer = inst.label_to_go_to;
-    case InstructionType.SPAWN_SPRITE:
-        (&program.sprites[(usz)inst.sprite_index]).visible = true;
-        (&program.sprites[(usz)inst.sprite_index]).x       = inst.sprite_x;
-        (&program.sprites[(usz)inst.sprite_index]).y       = inst.sprite_y;
+    case InstructionType.CHARACTER_VISIBILITY_SET:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        inst.previous_visibility = temp_character.visible;
+        temp_character.visible   = inst.set_visibility_to;
+
+        program.character_table[inst.character_name] = temp_character;
+        program.instruction_pointer += 1;
+    case InstructionType.CHARACTER_POSITION:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        inst.previous_position  = temp_character.position;
+        temp_character.position = inst.set_position_to;
+
+        program.character_table[inst.character_name] = temp_character;
+        program.instruction_pointer += 1;
+    case InstructionType.CHARACTER_EMOTE:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        inst.previous_emotion          = temp_character.current_emotion;
+        temp_character.current_emotion = inst.set_emotion_to;
+
+        program.character_table[inst.character_name] = temp_character;
         program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
@@ -98,7 +117,6 @@ fn bool step_program(Program* program) {
         text.step = 0;
         no_push = (program.history[program.history.size - 1].instruction_type == InstructionType.END_SCENARIO);
     }
-    inst.has_undo_data = true;
     inst.previous_instruction_pointer = old_instruction_pointer;
     if(!no_push) program.history.push(inst);
     return inst.blocking;
@@ -117,8 +135,25 @@ fn void step_back(Program* program) {
     case InstructionType.SHOW_TEXT:
     case InstructionType.END_SCENARIO:
         text.text = inst.previously_shown_text;
-    case InstructionType.SPAWN_SPRITE:
-        (&program.sprites[(usz)inst.sprite_index]).visible = false;
+
+    case InstructionType.CHARACTER_VISIBILITY_SET:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        temp_character.visible = inst.previous_visibility;
+
+        program.character_table[inst.character_name] = temp_character;
+    case InstructionType.CHARACTER_POSITION:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        temp_character.position = inst.previous_position;
+
+        program.character_table[inst.character_name] = temp_character;
+    case InstructionType.CHARACTER_EMOTE:
+        Character temp_character = program.character_table[inst.character_name]!!;
+
+        temp_character.current_emotion = inst.previous_emotion;
+
+        program.character_table[inst.character_name] = temp_character;
     case InstructionType.GOTO_LABEL:
         break;
     }
@@ -158,11 +193,16 @@ fn void main() {
             raylib::clear_background({0x18, 0x18, 0x18, 255});
             raylib::draw_text("Sample Text!", 50, 50, 24, raylib::WHITE);
 
-            foreach(SpriteAsset sprite : program.sprites) {
-                if(sprite.visible) {
-                    raylib::draw_texture(sprite.texture, sprite.x, sprite.y, raylib::WHITE);
+            program.character_table.@each(; char[] name, Character character) {
+                if(character.visible ) {
+                    raylib::draw_texture(
+                        character.emotion_sprite_table[character.current_emotion]!!.texture,
+                        (CInt)character.position.x,
+                        (CInt)character.position.y,
+                        raylib::WHITE
+                    );
                 }
-            }
+            };
 
             raylib::draw_rectangle_rec(textbox_rectangle, {0x11,0x11,0x11,180});
             raylib::draw_rectangle_lines_ex(textbox_rectangle, 5.0, raylib::WHITE);
