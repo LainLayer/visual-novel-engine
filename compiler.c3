@@ -170,14 +170,10 @@ fn void print_syntax_tree() {
         foreach(Action action : scene.actions) {
             printf("   + %s: ", action.action_type);
             switch(action.action_type) {
-            case ActionType.SAY:
-                printf("%s\n", action.text_to_say);
-            case ActionType.GOTO:
-                printf("%s\n", action.scene_id);
-            case ActionType.END:
-                printf("end\n");
-            case ActionType.SPAWN:
-                printf("sprite index %d, x: %d, y: %d\n", action.sprite_index, action.x, action.y);
+            case ActionType.SAY:   printf("%s\n", action.text_to_say);
+            case ActionType.GOTO:  printf("%s\n", action.scene_id);
+            case ActionType.END:   printf("end\n");
+            case ActionType.SPAWN: printf("sprite index %d, x: %d, y: %d\n", action.sprite_index, action.x, action.y);
             }
         }
     }
@@ -235,29 +231,19 @@ fn Token parse_identifier() {
     char[] text = file_data[(tokenizing_cursor-result.text_length)..tokenizing_cursor-1];
 
     switch(text) {
-    case "header": result.token_type       = TokenType.KEYWORD_HEADER;
-    case "sprite": result.token_type       = TokenType.KEYWORD_SPRITE;
-    case "spawn":  result.token_type       = TokenType.KEYWORD_SPAWN;
-    case "scene":  result.token_type       = TokenType.KEYWORD_SCENE;
-    case "flag":   result.token_type       = TokenType.KEYWORD_FLAG;
-    case "goto":   result.token_type       = TokenType.KEYWORD_GOTO;
-    case "say":    result.token_type       = TokenType.KEYWORD_SAY;
-    case "end":    result.token_type       = TokenType.KEYWORD_END;
-
-    case "true":   result.token_type       = TokenType.BOOLEAN_LITERAL;
-                   result.boolean_value    = true;
-
-    case "false":  result.token_type       = TokenType.BOOLEAN_LITERAL;
-                   result.boolean_value    = false;
-
-    case "bool":   result.token_type       = TokenType.TYPE;
-                   result.type_value       = TypeType.BOOLEAN;
-
-    case "int" :   result.token_type       = TokenType.TYPE;
-                   result.type_value       = TypeType.INTEGER;
-
-    default:       result.token_type       = TokenType.IDENTIFIER;
-                   result.identifier_value = text;
+    case "header": result.token_type = TokenType.KEYWORD_HEADER;
+    case "sprite": result.token_type = TokenType.KEYWORD_SPRITE;
+    case "spawn":  result.token_type = TokenType.KEYWORD_SPAWN;
+    case "scene":  result.token_type = TokenType.KEYWORD_SCENE;
+    case "flag":   result.token_type = TokenType.KEYWORD_FLAG;
+    case "goto":   result.token_type = TokenType.KEYWORD_GOTO;
+    case "say":    result.token_type = TokenType.KEYWORD_SAY;
+    case "end":    result.token_type = TokenType.KEYWORD_END;
+    case "true":   result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
+    case "false":  result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
+    case "bool":   result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
+    case "int" :   result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
+    default:       result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
     }
 
     return result;

@@ -37,6 +37,7 @@ struct Instruction {
             usz              scene_index;
         }
 
+        /* SPAWN_SPRITE */
         struct {
             SpriteIndex sprite_index;
             int         sprite_x;
@@ -44,7 +45,7 @@ struct Instruction {
         }
 
         /* END_SCENARIO */
-        // nothing needed, for undo just ip -= 1
+        // nothing needed
     }
 }
 

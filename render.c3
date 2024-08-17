@@ -23,19 +23,18 @@ TextAnimation text = {
 Rectangle textbox_rectangle;
 
 const usz MAX_TEXT_SIZE = 1024;
-const float FONT_SIZE   = 32.0;
-
 char[MAX_TEXT_SIZE] message_box_buffer;
 
+const float FONT_SIZE    = 32.0;
 const float TEXT_PADDING = 20.0;
-const float LINE_SPACING = 5.0;
+const float LINE_SPACING =  5.0;
 
-fn Rectangle Rectangle.shrink(self, float n) @inline {
+fn Rectangle Rectangle.shrink(rectangle, float n) @inline {
     return {
-        .x = self.x + n,
-        .y = self.y + n,
-        .width  = self.width  - n*2,
-        .height = self.height - n*2,
+        .x      = rectangle.x + n,
+        .y      = rectangle.y + n,
+        .width  = rectangle.width  - n*2,
+        .height = rectangle.height - n*2,
     };
 }
 
@@ -149,11 +148,13 @@ fn void main() {
             while(!step_program(&program));
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
-            step_back(&program);
-            while(!program.last_instruction_blocking()) step_back(&program);
+            do {
+                step_back(&program);
+            } while(!program.last_instruction_blocking());
         }
 
         raylib::begin_drawing();
+
             raylib::clear_background({0x18, 0x18, 0x18, 255});
             raylib::draw_text("Sample Text!", 50, 50, 24, raylib::WHITE);
 
@@ -163,7 +164,7 @@ fn void main() {
                 }
             }
 
-            raylib::draw_rectangle_rec(textbox_rectangle, {0x11,0x11,0x11,255});
+            raylib::draw_rectangle_rec(textbox_rectangle, {0x11,0x11,0x11,180});
             raylib::draw_rectangle_lines_ex(textbox_rectangle, 5.0, raylib::WHITE);
             text.render();
 
