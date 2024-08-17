@@ -100,13 +100,7 @@ fn void Program.load_assets(&program) {
         character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
             char[2048] buffer;
             io::bprintf(&buffer, "%s\0", sprite_data.filename);
-
-            Character temp_character = program.character_table[name]!!;
-            SpriteData temp_sprite_data = temp_character.emotion_sprite_table[emotion]!!;
-            temp_sprite_data.texture = raylib::load_texture((ZString)&buffer);
-            temp_character.emotion_sprite_table[emotion] = temp_sprite_data;
-            program.character_table[name] = temp_character;
-
+            character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture((ZString)&buffer);
         };
     };
 }

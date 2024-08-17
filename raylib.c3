@@ -190,6 +190,7 @@ extern fn Font  get_font_default()                                        @exter
 
 extern fn Texture2D load_texture(ZString)                      @extern("LoadTexture");
 extern fn void      draw_texture(Texture2D, CInt, CInt, Color) @extern("DrawTexture");
+extern fn void      draw_texture_v(Texture2D, Vector2, Color)  @extern("DrawTextureV");
 
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
 {

@@ -15,4 +15,3 @@ struct Character {
 
     HashMap(<char[], SpriteData>) emotion_sprite_table;
 }
-

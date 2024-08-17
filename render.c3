@@ -26,7 +26,7 @@ const usz MAX_TEXT_SIZE = 1024;
 char[MAX_TEXT_SIZE] message_box_buffer;
 
 const float FONT_SIZE    = 32.0;
-const float TEXT_PADDING = 20.0;
+const float TEXT_PADDING = 40.0;
 const float LINE_SPACING =  5.0;
 
 fn Rectangle Rectangle.shrink(rectangle, float n) @inline {
@@ -66,10 +66,10 @@ fn void TextAnimation.render(&animation) {
 
 fn void update_textbox_rectangle() @inline {
     textbox_rectangle = {
-        .x = 10,
-        .y = ((float)(raylib::get_screen_height()) * 0.66),
-        .width  = (float)(raylib::get_screen_width()  - 20),
-        .height = ((float)raylib::get_screen_height() / 3.0)
+        .x      = 10,
+        .y      = (float)(raylib::get_screen_height()) * 0.75,
+        .width  = (float)(raylib::get_screen_width()   - 20),
+        .height = (float)(raylib::get_screen_height()) / 4.0 - 10
     };
 }
 
@@ -88,28 +88,19 @@ fn bool step_program(Program* program) {
     case InstructionType.GOTO_LABEL:
         program.instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
-        Character temp_character = program.character_table[inst.character_name]!!;
+        inst.previous_visibility = program.character_table[inst.character_name]!!.visible;
+        program.character_table.get_ref(inst.character_name)!!.visible = inst.set_visibility_to;
 
-        inst.previous_visibility = temp_character.visible;
-        temp_character.visible   = inst.set_visibility_to;
-
-        program.character_table[inst.character_name] = temp_character;
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
-        Character temp_character = program.character_table[inst.character_name]!!;
+        inst.previous_position = program.character_table[inst.character_name]!!.position;
+        program.character_table.get_ref(inst.character_name)!!.position = inst.set_position_to;
 
-        inst.previous_position  = temp_character.position;
-        temp_character.position = inst.set_position_to;
-
-        program.character_table[inst.character_name] = temp_character;
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
-        Character temp_character = program.character_table[inst.character_name]!!;
+        inst.previous_emotion = program.character_table[inst.character_name]!!.current_emotion;
+        program.character_table.get_ref(inst.character_name)!!.current_emotion = inst.set_emotion_to;
 
-        inst.previous_emotion          = temp_character.current_emotion;
-        temp_character.current_emotion = inst.set_emotion_to;
-
-        program.character_table[inst.character_name] = temp_character;
         program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
@@ -136,26 +127,10 @@ fn void step_back(Program* program) {
     case InstructionType.END_SCENARIO:
         text.text = inst.previously_shown_text;
 
-    case InstructionType.CHARACTER_VISIBILITY_SET:
-        Character temp_character = program.character_table[inst.character_name]!!;
-
-        temp_character.visible = inst.previous_visibility;
-
-        program.character_table[inst.character_name] = temp_character;
-    case InstructionType.CHARACTER_POSITION:
-        Character temp_character = program.character_table[inst.character_name]!!;
-
-        temp_character.position = inst.previous_position;
-
-        program.character_table[inst.character_name] = temp_character;
-    case InstructionType.CHARACTER_EMOTE:
-        Character temp_character = program.character_table[inst.character_name]!!;
-
-        temp_character.current_emotion = inst.previous_emotion;
-
-        program.character_table[inst.character_name] = temp_character;
-    case InstructionType.GOTO_LABEL:
-        break;
+    case InstructionType.CHARACTER_VISIBILITY_SET: program.character_table.get_ref(inst.character_name)!!.visible         = inst.previous_visibility;
+    case InstructionType.CHARACTER_POSITION:       program.character_table.get_ref(inst.character_name)!!.position        = inst.previous_position;
+    case InstructionType.CHARACTER_EMOTE:          program.character_table.get_ref(inst.character_name)!!.current_emotion = inst.previous_emotion;
+    case InstructionType.GOTO_LABEL:               break;
     }
     program.instruction_pointer = inst.previous_instruction_pointer;
 }
@@ -195,10 +170,9 @@ fn void main() {
 
             program.character_table.@each(; char[] name, Character character) {
                 if(character.visible ) {
-                    raylib::draw_texture(
+                    raylib::draw_texture_v(
                         character.emotion_sprite_table[character.current_emotion]!!.texture,
-                        (CInt)character.position.x,
-                        (CInt)character.position.y,
+                        character.position,
                         raylib::WHITE
                     );
                 }

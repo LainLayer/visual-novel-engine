@@ -473,10 +473,7 @@ fn void parse_character() {
                 character_table[character_name] = Character { .visible = false, .current_emotion = emotion };
             }
 
-            // character_table[character_name]!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
-            Character temp_character = character_table[character_name]!!;
-            temp_character.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
-            character_table[character_name] = temp_character;
+            character_table.get_ref(character_name)!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
 
             count++;
         } else {
