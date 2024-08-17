@@ -17,16 +17,16 @@ flag other_flag_b int  11;
 scene first_scene "My first epic scene" {
     say "inside first scene";
 
-    spawn nika happy 0 0;
+    spawn nika happy 200 200;
     say "spawning a happy sprite!";
 
-    spawn nika shy 0 0;
+    spawn nika shy 200 200;
     say "spawning a shy sprite!";
 
-    spawn nika normal 0 0;
+    spawn nika normal 200 200;
     say "spawning a normal sprite!";
 
-    spawn nikab happy 800 0;
+    spawn nikab happy 600 200;
     say "spawning a second sprite!";
 
     say "This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line";

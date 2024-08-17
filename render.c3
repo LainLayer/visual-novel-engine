@@ -20,13 +20,24 @@ TextAnimation text = {
     .text     = ""
 };
 
-Rectangle textbox_rectangle;
+RenderTexture2D game_texture;
+Rectangle       game_rectangle;
+
+const float GAME_WIDTH  = 1280;
+const float GAME_HEIGHT = 720;
+
+const Rectangle TEXTBOX_RECTANGLE = {
+    .x      = 10,
+    .y      = GAME_HEIGHT * 0.75,
+    .width  = GAME_WIDTH  - 20,
+    .height = GAME_HEIGHT / 4.0 - 10
+};
 
 const usz MAX_TEXT_SIZE = 1024;
 char[MAX_TEXT_SIZE] message_box_buffer;
 
-const float FONT_SIZE    = 32.0;
-const float TEXT_PADDING = 40.0;
+const float FONT_SIZE    = 18.0;
+const float TEXT_PADDING = 10.0;
 const float LINE_SPACING =  5.0;
 
 fn Rectangle Rectangle.shrink(rectangle, float n) @inline {
@@ -56,21 +67,12 @@ fn void TextAnimation.render(&animation) {
     raylib::draw_text_boxed(
         raylib::get_font_default(),
         (ZString)&message_box_buffer,
-        textbox_rectangle.shrink(TEXT_PADDING),
+        TEXTBOX_RECTANGLE.shrink(TEXT_PADDING),
         FONT_SIZE,
         LINE_SPACING,
         true,
         raylib::WHITE
     );
-}
-
-fn void update_textbox_rectangle() @inline {
-    textbox_rectangle = {
-        .x      = 10,
-        .y      = (float)(raylib::get_screen_height()) * 0.75,
-        .width  = (float)(raylib::get_screen_width()   - 20),
-        .height = (float)(raylib::get_screen_height()) / 4.0 - 10
-    };
 }
 
 fn bool step_program(Program* program) {
@@ -135,6 +137,24 @@ fn void step_back(Program* program) {
     program.instruction_pointer = inst.previous_instruction_pointer;
 }
 
+fn void handle_window_resize() {
+    float current_window_width  = (float)raylib::get_screen_width();
+    float current_window_height = (float)raylib::get_screen_height();
+    float scale_x = current_window_width  / GAME_WIDTH;
+    float scale_y = current_window_height / GAME_HEIGHT;
+    float scale   = (scale_x < scale_y) ? scale_x : scale_y;
+
+    float destination_width  = GAME_WIDTH  * scale;
+    float destination_height = GAME_HEIGHT * scale;
+
+    game_rectangle = {
+        (current_window_width  - destination_width)  / 2,
+        (current_window_height - destination_height) / 2,
+        destination_width,
+        destination_height
+    };
+}
+
 fn void main() {
     io::printn("test!");
 
@@ -150,9 +170,12 @@ fn void main() {
 
     raylib::set_target_fps(60);
 
-    while(!raylib::window_should_close()) {
-        update_textbox_rectangle();
+    handle_window_resize();
 
+    game_texture = raylib::load_render_texture((CInt)GAME_WIDTH, (CInt)GAME_HEIGHT);
+    defer raylib::unload_render_texture(game_texture);
+
+    while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
             while(!step_program(&program));
@@ -163,24 +186,34 @@ fn void main() {
             } while(!program.last_instruction_blocking());
         }
 
+        if(raylib::is_window_resized()) handle_window_resize();
+
         raylib::begin_drawing();
+            raylib::clear_background({0x25, 0x25, 0x25, 255});
 
-            raylib::clear_background({0x18, 0x18, 0x18, 255});
-            raylib::draw_text("Sample Text!", 50, 50, 24, raylib::WHITE);
+            raylib::begin_texture_mode(game_texture);
+                raylib::clear_background({0x18, 0x18, 0x18, 255});
 
-            program.character_table.@each(; char[] name, Character character) {
-                if(character.visible ) {
-                    raylib::draw_texture_v(
-                        character.emotion_sprite_table[character.current_emotion]!!.texture,
-                        character.position,
-                        raylib::WHITE
-                    );
-                }
-            };
+                program.character_table.@each(; char[] name, Character character) {
+                    if(character.visible) {
+                        Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
+                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, GAME_HEIGHT / (float)sprite_texture.height, raylib::WHITE);
+                    }
+                };
 
-            raylib::draw_rectangle_rec(textbox_rectangle, {0x11,0x11,0x11,180});
-            raylib::draw_rectangle_lines_ex(textbox_rectangle, 5.0, raylib::WHITE);
-            text.render();
+                raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
+                raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, raylib::WHITE);
+                text.render();
+            raylib::end_texture_mode();
+
+            raylib::draw_texture_pro(
+                game_texture.texture,
+                { 0, 0, GAME_WIDTH, -GAME_HEIGHT },
+                game_rectangle,
+                { 0, 0 },
+                0.0,
+                raylib::WHITE
+            );
 
         raylib::end_drawing();
     }

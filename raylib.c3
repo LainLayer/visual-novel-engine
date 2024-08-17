@@ -4,6 +4,7 @@ def Color   = char[<4>];
 def Vector2 = float[<2>];
 
 const Color WHITE = { 255, 255, 255, 255 };
+const Color RED   = { 255,   0,   0, 255 };
 
 struct Rectangle {
     float x;
@@ -21,6 +22,14 @@ struct Texture {
 }
 
 def Texture2D = Texture;
+
+struct RenderTexture {
+    CUInt id;
+    Texture texture;
+    Texture depth;
+}
+
+def RenderTexture2D = RenderTexture;
 
 struct Image {
     void* data;
@@ -166,6 +175,7 @@ enum KeyboardKey : CInt (CInt value) {
 }
 
 extern fn void  init_window(CInt, CInt, ZString)                 @extern("InitWindow");
+extern fn bool  is_window_resized()                              @extern("IsWindowResized");
 extern fn void  set_target_fps(CInt)                             @extern("SetTargetFPS");
 extern fn bool  window_should_close()                            @extern("WindowShouldClose");
 extern fn void  begin_drawing()                                  @extern("BeginDrawing");
@@ -188,9 +198,17 @@ extern fn CInt  get_glyph_index(Font, CInt)                               @exter
 extern fn void  draw_text_codepoint(Font, CInt, float[<2>], float, Color) @extern("DrawTextCodepoint");
 extern fn Font  get_font_default()                                        @extern("GetFontDefault");
 
-extern fn Texture2D load_texture(ZString)                      @extern("LoadTexture");
-extern fn void      draw_texture(Texture2D, CInt, CInt, Color) @extern("DrawTexture");
-extern fn void      draw_texture_v(Texture2D, Vector2, Color)  @extern("DrawTextureV");
+extern fn Texture2D       load_texture(ZString)                                  @extern("LoadTexture");
+extern fn RenderTexture2D load_render_texture(CInt, CInt)                        @extern("LoadRenderTexture");
+extern fn void            unload_render_texture(RenderTexture2D)                 @extern("UnloadRenderTexture");
+extern fn void            begin_texture_mode(RenderTexture2D)                    @extern("BeginTextureMode");
+extern fn void            end_texture_mode()                                     @extern("EndTextureMode");
+
+extern fn void draw_texture(Texture2D, CInt, CInt, Color)             @extern("DrawTexture");
+extern fn void draw_texture_v(Texture2D, Vector2, Color)              @extern("DrawTextureV");
+extern fn void draw_texture_rec(Texture2D, Rectangle, Vector2, Color) @extern("DrawTextureRec");
+extern fn void draw_texture_ex(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) @extern("DrawTextureEx");
+extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle dest, Vector2 origin, float rotation, Color tint) @extern("DrawTexturePro");
 
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
 {
