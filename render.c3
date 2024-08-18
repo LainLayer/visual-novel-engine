@@ -197,7 +197,18 @@ fn void main() {
                 program.character_table.@each(; char[] name, Character character) {
                     if(character.visible) {
                         Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
-                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, GAME_HEIGHT / (float)sprite_texture.height, raylib::WHITE);
+                        float scale = GAME_HEIGHT / (float)sprite_texture.height;
+                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, raylib::WHITE);
+                        // raylib::draw_rectangle_lines_ex(
+                        //     {
+                        //         character.position.x,
+                        //         character.position.y,
+                        //         sprite_texture.width * scale,
+                        //         sprite_texture.height * scale
+                        //     },
+                        //     1.0,
+                        //     raylib::RED
+                        // );
                     }
                 };
 

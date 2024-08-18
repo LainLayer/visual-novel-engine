@@ -37,12 +37,19 @@ enum TokenType : char {
 
     KEYWORD_HEADER,
     KEYWORD_SCENE,
-    KEYWORD_SAY,
-    KEYWORD_FLAG,
-    KEYWORD_GOTO,
-    KEYWORD_END,
     KEYWORD_CHARACTER,
+    KEYWORD_FLAG,
+
+    KEYWORD_SAY,
+    KEYWORD_GOTO,
+
     KEYWORD_SPAWN,
+    KEYWORD_SHOW,
+    KEYWORD_HIDE,
+    KEYWORD_MOVE,
+    KEYWORD_EMOTE,
+
+    KEYWORD_END,
 
     EOF
 }
@@ -88,7 +95,12 @@ struct Token {
 enum ActionType : char {
     SAY,
     GOTO,
+
     SPAWN,
+    SET_VISIBILITY,
+    MOVE,
+    EMOTE,
+
     END,
 }
 
@@ -96,13 +108,16 @@ struct Action {
     ActionType action_type;
 
     union {
-        char[] text_to_say;
-        char[] scene_id;
-        struct {
+        char[] text_to_say; /* SAY   */
+        char[] scene_id;    /* GOTO  */
+
+        struct {            /* SPAWN */
             char[]  character_name;
-            char[]  emotion_name;
-            Vector2 position;
+            char[]  emotion_name; /* EMOTE          */
+            Vector2 position;     /* MOVE           */
+            bool    visibility;   /* SET_VISIBILITY */
         }
+
     }
 }
 
@@ -126,6 +141,14 @@ List(<Token>)  goto_promises;
 Token          current_token;
 
 HashMap(<char[], Character>) character_table;
+
+macro bool character_exists(char[] name) {
+    return character_table.has_key(name);
+}
+
+macro bool character_has_emotion(char[] name, char[] emotion) {
+    return character_table[name]!!.emotion_sprite_table.has_key(emotion);
+}
 
 fn bool has_flag(char[] name) @inline {
     foreach(Flag f : flags) {
@@ -166,10 +189,13 @@ fn void print_syntax_tree() {
         foreach(Action action : scene.actions) {
             printf("   + %s: ", action.action_type);
             switch(action.action_type) {
-            case ActionType.SAY:   printf("%s\n", action.text_to_say);
-            case ActionType.GOTO:  printf("%s\n", action.scene_id);
-            case ActionType.END:   printf("end\n");
-            case ActionType.SPAWN: printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
+            case ActionType.SAY:            printf("%s\n", action.text_to_say);
+            case ActionType.GOTO:           printf("%s\n", action.scene_id);
+            case ActionType.MOVE:           printf("%s\n", action.position);
+            case ActionType.END:            printf("end\n");
+            case ActionType.SPAWN:          printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
+            case ActionType.SET_VISIBILITY: printf("%s\n", action.visibility);
+            case ActionType.EMOTE:          printf("%s\n", action.emotion_name);
             }
         }
     }
@@ -224,17 +250,25 @@ fn Token parse_identifier() {
     } while(has_more_text() && (is_identifier_start_character(file_data[tokenizing_cursor]) || is_numeric(file_data[tokenizing_cursor])));
 
     result.text_length = tokenizing_location.character - result.location.character;
-    char[] text = file_data[(tokenizing_cursor-result.text_length)..tokenizing_cursor-1];
+    char[] text = file_data[tokenizing_cursor-result.text_length..tokenizing_cursor-1];
 
     switch(text) {
+
+    /* Keywords */
     case "character": result.token_type = TokenType.KEYWORD_CHARACTER;
     case "header":    result.token_type = TokenType.KEYWORD_HEADER;
     case "spawn":     result.token_type = TokenType.KEYWORD_SPAWN;
     case "scene":     result.token_type = TokenType.KEYWORD_SCENE;
+    case "emote":     result.token_type = TokenType.KEYWORD_EMOTE;
     case "flag":      result.token_type = TokenType.KEYWORD_FLAG;
+    case "show":      result.token_type = TokenType.KEYWORD_SHOW;
+    case "hide":      result.token_type = TokenType.KEYWORD_HIDE;
+    case "move":      result.token_type = TokenType.KEYWORD_MOVE;
     case "goto":      result.token_type = TokenType.KEYWORD_GOTO;
     case "say":       result.token_type = TokenType.KEYWORD_SAY;
     case "end":       result.token_type = TokenType.KEYWORD_END;
+
+    /* Literals */
     case "true":      result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
     case "false":     result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
     case "bool":      result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
@@ -386,15 +420,18 @@ fn void parse_scene() {
             action.action_type = ActionType.SAY;
             action.text_to_say = expect(TokenType.STRING_LITERAL).string_value;
             expect(TokenType.SEMICOLON);
+
         case TokenType.KEYWORD_GOTO:
             action.action_type  = ActionType.GOTO;
             Token goto_scene_id = expect(TokenType.IDENTIFIER);
             action.scene_id     = goto_scene_id.identifier_value;
             goto_promises.push(goto_scene_id);
             expect(TokenType.SEMICOLON);
+
         case TokenType.KEYWORD_END:
             action.action_type = ActionType.END;
             expect(TokenType.SEMICOLON);
+
         case TokenType.KEYWORD_SPAWN:
             action.action_type = ActionType.SPAWN;
             char[] name    = expect(TokenType.IDENTIFIER).identifier_value;
@@ -411,6 +448,50 @@ fn void parse_scene() {
 
 
             expect(TokenType.SEMICOLON);
+
+        case TokenType.KEYWORD_SHOW:
+            action.action_type    = ActionType.SET_VISIBILITY;
+            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
+            action.visibility     = true;
+
+            if(!character_exists(action.character_name)) die("Trying to show non-existent character '%s'", action.character_name);
+
+            expect(TokenType.SEMICOLON);
+
+        case TokenType.KEYWORD_HIDE:
+            action.action_type    = ActionType.SET_VISIBILITY;
+            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
+            action.visibility     = false;
+
+            if(!character_exists(action.character_name)) die("Trying to hide non-existent character '%s'", action.character_name);
+
+            expect(TokenType.SEMICOLON);
+
+        case TokenType.KEYWORD_EMOTE:
+            action.action_type    = ActionType.EMOTE;
+            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!character_exists(action.character_name)) die("Trying to emote non-existent character '%s'", action.character_name);
+
+            action.emotion_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!character_has_emotion(action.character_name, action.emotion_name)) {
+                die("Trying to emote character '%s' with non-existent emotion %s", action.character_name, action.emotion_name);
+            }
+
+            expect(TokenType.SEMICOLON);
+
+        case TokenType.KEYWORD_MOVE:
+            action.action_type    = ActionType.MOVE;
+            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!character_exists(action.character_name)) die("Trying to move non-existent character '%s'", action.character_name);
+
+            action.position.x = expect(TokenType.INTEGER_LITERAL).integer_value;
+            action.position.y = expect(TokenType.INTEGER_LITERAL).integer_value;
+
+            expect(TokenType.SEMICOLON);
+
         default:
             die("unimplemented action %s", current_token.token_type);
         }
@@ -562,19 +643,39 @@ fn Program! compile_file(String path) {
                 });
 
                 program.instructions.push({
-                    .instruction_type = InstructionType.CHARACTER_POSITION,
+                    .instruction_type  = InstructionType.CHARACTER_POSITION,
                     .character_name    = action.character_name,
-                    .set_position_to  = action.position,
-                    .blocking         = false,
+                    .set_position_to   = action.position,
+                    .blocking          = false,
                 });
 
                 program.instructions.push({
-                    .instruction_type = InstructionType.CHARACTER_EMOTE,
+                    .instruction_type  = InstructionType.CHARACTER_EMOTE,
                     .character_name    = action.character_name,
-                    .set_emotion_to   = action.emotion_name,
-                    .blocking         = false,
+                    .set_emotion_to    = action.emotion_name,
+                    .blocking          = false,
                 });
-
+            case SET_VISIBILITY:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
+                    .character_name    = action.character_name,
+                    .set_visibility_to = action.visibility,
+                    .blocking          = false,
+                });
+            case EMOTE:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.CHARACTER_EMOTE,
+                    .character_name    = action.character_name,
+                    .set_emotion_to    = action.emotion_name,
+                    .blocking          = false,
+                });
+            case MOVE:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.CHARACTER_POSITION,
+                    .character_name    = action.character_name,
+                    .set_position_to   = action.position,
+                    .blocking          = false,
+                });
             }
         }
     }

@@ -31,6 +31,18 @@ scene first_scene "My first epic scene" {
 
     say "This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line";
 
+    hide nika;
+    say "Hiding first sprite";
+
+    show nika;
+    say "Showing first sprite";
+
+    emote nikab shy;
+    say "Making second sprite shy";
+
+    move nikab 800 200;
+    say "Moving second sprite";
+
     goto second_scene;
 }
 
