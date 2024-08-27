@@ -13,6 +13,7 @@ import vm;
 import arena;
 import list;
 import raylib;
+import animation;
 
 enum TokenType : char {
     INVALID_TOKEN,
@@ -48,6 +49,10 @@ enum TokenType : char {
     KEYWORD_HIDE,
     KEYWORD_MOVE,
     KEYWORD_EMOTE,
+
+    KEYWORD_SEQUENCE,
+    KEYWORD_GROUP,
+    KEYWORD_SLIDE,
 
     KEYWORD_END,
 
@@ -91,7 +96,6 @@ struct Token {
     }
 }
 
-
 enum ActionType : char {
     SAY,
     GOTO,
@@ -100,6 +104,8 @@ enum ActionType : char {
     SET_VISIBILITY,
     MOVE,
     EMOTE,
+
+    ANIMATION,
 
     END,
 }
@@ -118,6 +124,7 @@ struct Action {
             bool    visibility;   /* SET_VISIBILITY */
         }
 
+        AnimationIndex animation;
     }
 }
 
@@ -140,14 +147,12 @@ List(<Scene>)  scenes;
 List(<Token>)  goto_promises;
 Token          current_token;
 
-HashMap(<char[], Character>) character_table;
-
 macro bool character_exists(char[] name) {
-    return character_table.has_key(name);
+    return common::character_table.has_key(name);
 }
 
 macro bool character_has_emotion(char[] name, char[] emotion) {
-    return character_table[name]!!.emotion_sprite_table.has_key(emotion);
+    return common::character_table[name]!!.emotion_sprite_table.has_key(emotion);
 }
 
 fn bool has_flag(char[] name) @inline {
@@ -162,7 +167,7 @@ fn void print_syntax_tree() {
     printf("scenario title: %s\n", scenario_title);
     printn("scenario languages:");
 
-    character_table.@each(; char[] name, Character character) {
+    common::character_table.@each(; char[] name, Character character) {
         character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
             printf("%s[%s] -> '%s'\n", name, emotion, sprite_data.filename);
         };
@@ -196,6 +201,7 @@ fn void print_syntax_tree() {
             case ActionType.SPAWN:          printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
             case ActionType.SET_VISIBILITY: printf("%s\n", action.visibility);
             case ActionType.EMOTE:          printf("%s\n", action.emotion_name);
+            case ActionType.ANIMATION:      printf("%s\n", action.animation);
             }
         }
     }
@@ -256,8 +262,11 @@ fn Token parse_identifier() {
 
     /* Keywords */
     case "character": result.token_type = TokenType.KEYWORD_CHARACTER;
+    case "sequence":  result.token_type = TokenType.KEYWORD_SEQUENCE;
     case "header":    result.token_type = TokenType.KEYWORD_HEADER;
     case "spawn":     result.token_type = TokenType.KEYWORD_SPAWN;
+    case "slide":     result.token_type = TokenType.KEYWORD_SLIDE;
+    case "group":     result.token_type = TokenType.KEYWORD_GROUP;
     case "scene":     result.token_type = TokenType.KEYWORD_SCENE;
     case "emote":     result.token_type = TokenType.KEYWORD_EMOTE;
     case "flag":      result.token_type = TokenType.KEYWORD_FLAG;
@@ -399,6 +408,70 @@ fn void parse_header() {
     }
 }
 
+fn void parse_animation(Animation* animation) {
+    switch(current_token.token_type) {
+    case TokenType.KEYWORD_SLIDE:
+        char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+        if(!character_exists(character_name)) die("Trying to slide animate non-existent character '%s'", character_name);
+
+        Vector2 slide_from = {
+            (float)expect(TokenType.INTEGER_LITERAL).integer_value,
+            (float)expect(TokenType.INTEGER_LITERAL).integer_value
+        };
+
+        Vector2 slide_to = {
+            (float)expect(TokenType.INTEGER_LITERAL).integer_value,
+            (float)expect(TokenType.INTEGER_LITERAL).integer_value
+        };
+
+        float duration = (float)expect(TokenType.INTEGER_LITERAL).integer_value;
+
+        expect(TokenType.SEMICOLON);
+
+        animation.animation_type = AnimationType.SLIDE;
+        animation.step           = 0.0;
+        animation.duration       = duration;
+        animation.character_name = character_name;
+        animation.slide_to       = slide_to;
+        animation.slide_from     = slide_from;
+
+    case TokenType.KEYWORD_SEQUENCE:
+        animation.animation_type = AnimationType.SEQUENCE;
+        expect(TokenType.OPEN_BRACKET);
+        bump_lexer();
+
+        if(current_token.token_type == TokenType.CLOSE_BRACKET) {
+            die("Empty animation sequences are not allowed");
+        }
+
+        while(current_token.token_type != TokenType.CLOSE_BRACKET) {
+            Animation sub_animation;
+            parse_animation(&sub_animation);
+            animation.push(sub_animation)!!;
+            bump_lexer();
+        }
+    case TokenType.KEYWORD_GROUP:
+        animation.animation_type = AnimationType.GROUP;
+        expect(TokenType.OPEN_BRACKET);
+        bump_lexer();
+
+        if(current_token.token_type == TokenType.CLOSE_BRACKET) {
+            die("Empty animation groups are not allowed");
+        }
+
+        while(current_token.token_type != TokenType.CLOSE_BRACKET) {
+            Animation sub_animation;
+            parse_animation(&sub_animation);
+            animation.push(sub_animation)!!;
+            bump_lexer();
+        }
+
+    default:
+        die("Unexpected token %s during animation declaration", current_token.token_type);
+    }
+}
+
 fn void parse_scene() {
     Scene scene;
 
@@ -437,7 +510,7 @@ fn void parse_scene() {
             char[] name    = expect(TokenType.IDENTIFIER).identifier_value;
             char[] emotion = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(character_table.has_key(name) && character_table[name]!!.emotion_sprite_table.has_key(emotion)) {
+            if(common::character_table.has_key(name) && common::character_table[name]!!.emotion_sprite_table.has_key(emotion)) {
                 action.character_name = name;
                 action.emotion_name   = emotion;
                 action.position.x     = expect(TokenType.INTEGER_LITERAL).integer_value;
@@ -491,6 +564,17 @@ fn void parse_scene() {
             action.position.y = expect(TokenType.INTEGER_LITERAL).integer_value;
 
             expect(TokenType.SEMICOLON);
+
+        case TokenType.KEYWORD_SLIDE:
+        case TokenType.KEYWORD_GROUP:
+        case TokenType.KEYWORD_SEQUENCE:
+            action.action_type = ActionType.ANIMATION;
+
+            Animation animation;
+            parse_animation(&animation);
+            animation::animation_list.push(animation);
+
+            action.animation = animation::animation_list.len() - 1;
 
         default:
             die("unimplemented action %s", current_token.token_type);
@@ -546,15 +630,15 @@ fn void parse_character() {
             char[] filename = current_token.string_value; // @cleanup validate filename
             char[] emotion  = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(character_table.has_key(character_name) && character_table[character_name]!!.emotion_sprite_table.has_key(emotion)) {
+            if(common::character_table.has_key(character_name) && common::character_table[character_name]!!.emotion_sprite_table.has_key(emotion)) {
                 die("Redefinition of emotion '%s' for character '%s'", emotion, character_name);
             }
 
-            if(!character_table.has_key(character_name)) {
-                character_table[character_name] = Character { .visible = false, .current_emotion = emotion };
+            if(!common::character_table.has_key(character_name)) {
+                common::character_table[character_name] = Character { .visible = false, .current_emotion = emotion };
             }
 
-            character_table.get_ref(character_name)!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
+            common::character_table.get_ref(character_name)!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
 
             count++;
         } else {
@@ -676,6 +760,12 @@ fn Program! compile_file(String path) {
                     .set_position_to   = action.position,
                     .blocking          = false,
                 });
+            case ANIMATION:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.ANIMATE,
+                    .animation_index   = action.animation,
+                    .blocking          = false,
+                });
             }
         }
     }
@@ -689,8 +779,6 @@ fn Program! compile_file(String path) {
             goto_instruction.label_to_go_to = labels[program.instructions[i].scene_index];
         }
     }
-
-    program.character_table = character_table;
 
     program.print();
 

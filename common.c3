@@ -1,7 +1,14 @@
 module common;
 
 import raylib;
+import animation;
 import std::collections::map;
+
+def Color   = char[<4>];
+def Vector2 = float[<2>];
+
+const Color WHITE = { 255, 255, 255, 255 };
+const Color RED   = { 255,   0,   0, 255 };
 
 struct SpriteData {
     char[]    filename;
@@ -14,4 +21,13 @@ struct Character {
     char[]  current_emotion;
 
     HashMap(<char[], SpriteData>) emotion_sprite_table;
+}
+
+HashMap(<char[], Character>) character_table;
+
+bool           currently_animating = false;
+AnimationIndex current_animation;
+
+fn Vector2 interpolate(Vector2 start, Vector2 end, float progress) {
+    return start * (1.0 - progress) + (end * progress);
 }

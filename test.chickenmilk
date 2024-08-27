@@ -15,33 +15,25 @@ flag other_flag_a int  0;
 flag other_flag_b int  11;
 
 scene first_scene "My first epic scene" {
-    say "inside first scene";
+    say "epic.";
+    spawn nika  happy    0 0;
+    spawn nikab normal 800 0;
 
-    spawn nika happy 200 200;
-    say "spawning a happy sprite!";
+    say "spawning 2 sprites!";
 
-    spawn nika shy 200 200;
-    say "spawning a shy sprite!";
+    group {
+        slide nika  0   0     200 0   1;
+        slide nikab 800 0     600 0   1;
+    }
 
-    spawn nika normal 200 200;
-    say "spawning a normal sprite!";
+    say "moving them closer";
 
-    spawn nikab happy 600 200;
-    say "spawning a second sprite!";
+    sequence {
+        slide nika   200 0  0   0 1;
+        slide nikab  600 0  800 0 1;
+    }
 
-    say "This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line This is a really long line";
-
-    hide nika;
-    say "Hiding first sprite";
-
-    show nika;
-    say "Showing first sprite";
-
-    emote nikab shy;
-    say "Making second sprite shy";
-
-    move nikab 800 200;
-    say "Moving second sprite";
+    say "sliding them apart separately!";
 
     goto second_scene;
 }

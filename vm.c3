@@ -5,6 +5,7 @@ import std::io;
 import list;
 import common;
 import raylib;
+import animation;
 
 distinct InstructionIndex = usz;
 
@@ -16,6 +17,8 @@ enum InstructionType : char {
     CHARACTER_VISIBILITY_SET,
     CHARACTER_POSITION,
     CHARACTER_EMOTE,
+
+    ANIMATE,
 }
 
 struct Instruction {
@@ -62,6 +65,13 @@ struct Instruction {
             }
         }
 
+        /* ANIMATE */
+        struct {
+            AnimationIndex animation_index;
+            AnimationIndex previous_animation_index;
+            bool           previous_animation_state;
+        }
+
         /* END_SCENARIO */
         // nothing needed
     }
@@ -71,8 +81,6 @@ struct Program {
     InstructionIndex    instruction_pointer;
     List(<Instruction>) instructions;
     List(<Instruction>) history;
-
-    HashMap(<char[], Character>) character_table;
 }
 
 fn void Program.print(program) {
@@ -89,18 +97,10 @@ fn void Program.print(program) {
             io::printf("position: %s\n", instruction.set_position_to);
         case InstructionType.CHARACTER_EMOTE:
             io::printf("emotion: %s\n", instruction.set_emotion_to);
+        case InstructionType.ANIMATE:
+            io::printf("animation index: %s\n", instruction.animation_index);
         case InstructionType.END_SCENARIO:
             break;
         }
     }
-}
-
-fn void Program.load_assets(&program) {
-    program.character_table.@each(; char[] name, Character character) {
-        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            char[2048] buffer;
-            io::bprintf(&buffer, "%s\0", sprite_data.filename);
-            character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture((ZString)&buffer);
-        };
-    };
 }

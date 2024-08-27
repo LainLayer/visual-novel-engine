@@ -7,6 +7,7 @@ import compiler;
 import vm;
 import raylib;
 import common;
+import animation;
 
 struct TextAnimation {
     float duration;
@@ -71,7 +72,7 @@ fn void TextAnimation.render(&animation) {
         FONT_SIZE,
         LINE_SPACING,
         true,
-        raylib::WHITE
+        common::WHITE
     );
 }
 
@@ -90,18 +91,28 @@ fn bool step_program(Program* program) {
     case InstructionType.GOTO_LABEL:
         program.instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
-        inst.previous_visibility = program.character_table[inst.character_name]!!.visible;
-        program.character_table.get_ref(inst.character_name)!!.visible = inst.set_visibility_to;
+        inst.previous_visibility = common::character_table[inst.character_name]!!.visible;
+        common::character_table.get_ref(inst.character_name)!!.visible = inst.set_visibility_to;
 
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
-        inst.previous_position = program.character_table[inst.character_name]!!.position;
-        program.character_table.get_ref(inst.character_name)!!.position = inst.set_position_to;
+        inst.previous_position = common::character_table[inst.character_name]!!.position;
+        common::character_table.get_ref(inst.character_name)!!.position = inst.set_position_to;
 
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
-        inst.previous_emotion = program.character_table[inst.character_name]!!.current_emotion;
-        program.character_table.get_ref(inst.character_name)!!.current_emotion = inst.set_emotion_to;
+        inst.previous_emotion = common::character_table[inst.character_name]!!.current_emotion;
+        common::character_table.get_ref(inst.character_name)!!.current_emotion = inst.set_emotion_to;
+
+        program.instruction_pointer += 1;
+    case InstructionType.ANIMATE:
+        inst.previous_animation_state = common::currently_animating;
+        inst.previous_animation_index = common::current_animation;
+
+        common::currently_animating = true;
+        common::current_animation   = inst.animation_index;
+
+        (&animation::animation_list[inst.animation_index]).reset();
 
         program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
@@ -116,7 +127,7 @@ fn bool step_program(Program* program) {
 }
 
 fn bool Program.last_instruction_blocking(program) {
-    if(program.history.size < 2) return true;
+    if(program.history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
     return program.history[program.history.size - 1].blocking;
 }
 
@@ -129,9 +140,16 @@ fn void step_back(Program* program) {
     case InstructionType.END_SCENARIO:
         text.text = inst.previously_shown_text;
 
-    case InstructionType.CHARACTER_VISIBILITY_SET: program.character_table.get_ref(inst.character_name)!!.visible         = inst.previous_visibility;
-    case InstructionType.CHARACTER_POSITION:       program.character_table.get_ref(inst.character_name)!!.position        = inst.previous_position;
-    case InstructionType.CHARACTER_EMOTE:          program.character_table.get_ref(inst.character_name)!!.current_emotion = inst.previous_emotion;
+    case InstructionType.ANIMATE:
+        (&animation::animation_list[inst.animation_index]).reset();
+        animation::animation_list[inst.animation_index].apply();
+
+        common::current_animation   = inst.previous_animation_index;
+        common::currently_animating = inst.previous_animation_state;
+
+    case InstructionType.CHARACTER_VISIBILITY_SET: common::character_table.get_ref(inst.character_name)!!.visible         = inst.previous_visibility;
+    case InstructionType.CHARACTER_POSITION:       common::character_table.get_ref(inst.character_name)!!.position        = inst.previous_position;
+    case InstructionType.CHARACTER_EMOTE:          common::character_table.get_ref(inst.character_name)!!.current_emotion = inst.previous_emotion;
     case InstructionType.GOTO_LABEL:               break;
     }
     program.instruction_pointer = inst.previous_instruction_pointer;
@@ -155,18 +173,29 @@ fn void handle_window_resize() {
     };
 }
 
+fn void load_assets() {
+    common::character_table.@each(; char[] name, Character character) {
+        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
+            char[2048] buffer;
+            io::bprintf(&buffer, "%s\0", sprite_data.filename);
+            character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture((ZString)&buffer);
+        };
+    };
+}
+
 fn void main() {
     io::printn("test!");
 
-    Program program = compiler::compile_file("test.balls")!!;
-    step_program(&program);
+    Program program = compiler::compile_file("test.chickenmilk")!!;
+
+    while(!step_program(&program));
 
     io::printf("instruction size: %d\n", $sizeof(Instruction.typeid));
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
 
-    program.load_assets();
+    load_assets();
 
     raylib::set_target_fps(60);
 
@@ -178,6 +207,9 @@ fn void main() {
     while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
+            if(common::currently_animating) {
+                (&animation::animation_list[common::current_animation]).skip();
+            }
             while(!step_program(&program));
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
@@ -194,26 +226,23 @@ fn void main() {
             raylib::begin_texture_mode(game_texture);
                 raylib::clear_background({0x18, 0x18, 0x18, 255});
 
-                program.character_table.@each(; char[] name, Character character) {
+                common::character_table.@each(; char[] name, Character character) {
                     if(character.visible) {
                         Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
-                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, raylib::WHITE);
-                        // raylib::draw_rectangle_lines_ex(
-                        //     {
-                        //         character.position.x,
-                        //         character.position.y,
-                        //         sprite_texture.width * scale,
-                        //         sprite_texture.height * scale
-                        //     },
-                        //     1.0,
-                        //     raylib::RED
-                        // );
+                        if(common::currently_animating) {
+                            // asm("int3");
+                            (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
+                            animation::animation_list[common::current_animation].apply();
+                            raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
+                        } else {
+                            raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
+                        }
                     }
                 };
 
                 raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
-                raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, raylib::WHITE);
+                raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, common::WHITE);
                 text.render();
             raylib::end_texture_mode();
 
@@ -223,7 +252,7 @@ fn void main() {
                 game_rectangle,
                 { 0, 0 },
                 0.0,
-                raylib::WHITE
+                common::WHITE
             );
 
         raylib::end_drawing();

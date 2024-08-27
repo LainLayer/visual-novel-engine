@@ -1,10 +1,6 @@
 module raylib;
 
-def Color   = char[<4>];
-def Vector2 = float[<2>];
-
-const Color WHITE = { 255, 255, 255, 255 };
-const Color RED   = { 255,   0,   0, 255 };
+import common;
 
 struct Rectangle {
     float x;
@@ -212,7 +208,7 @@ extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle d
 
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
 {
-    draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, WHITE, WHITE);
+    draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, common::WHITE, common::WHITE);
 }
 
 enum DrawState {
