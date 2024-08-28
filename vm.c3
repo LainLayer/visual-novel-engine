@@ -69,7 +69,6 @@ struct Instruction {
         struct {
             AnimationIndex animation_index;
             AnimationIndex previous_animation_index;
-            bool           previous_animation_state;
         }
 
         /* END_SCENARIO */

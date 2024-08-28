@@ -5,9 +5,11 @@ import std::math;
 
 import compiler;
 import vm;
-import raylib;
 import common;
 import animation;
+
+import raylib;
+import imgui;
 
 struct TextAnimation {
     float duration;
@@ -106,10 +108,7 @@ fn bool step_program(Program* program) {
 
         program.instruction_pointer += 1;
     case InstructionType.ANIMATE:
-        inst.previous_animation_state = common::currently_animating;
         inst.previous_animation_index = common::current_animation;
-
-        common::currently_animating = true;
         common::current_animation   = inst.animation_index;
 
         (&animation::animation_list[inst.animation_index]).reset();
@@ -145,7 +144,6 @@ fn void step_back(Program* program) {
         animation::animation_list[inst.animation_index].apply();
 
         common::current_animation   = inst.previous_animation_index;
-        common::currently_animating = inst.previous_animation_state;
 
     case InstructionType.CHARACTER_VISIBILITY_SET: common::character_table.get_ref(inst.character_name)!!.visible         = inst.previous_visibility;
     case InstructionType.CHARACTER_POSITION:       common::character_table.get_ref(inst.character_name)!!.position        = inst.previous_position;
@@ -184,7 +182,8 @@ fn void load_assets() {
 }
 
 fn void main() {
-    io::printn("test!");
+
+    animation::init_animation_system();
 
     Program program = compiler::compile_file("test.chickenmilk")!!;
 
@@ -199,6 +198,9 @@ fn void main() {
 
     raylib::set_target_fps(60);
 
+    imgui::raylib_setup(true);
+    defer imgui::raylib_shutdown();
+
     handle_window_resize();
 
     game_texture = raylib::load_render_texture((CInt)GAME_WIDTH, (CInt)GAME_HEIGHT);
@@ -207,9 +209,7 @@ fn void main() {
     while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
-            if(common::currently_animating) {
-                (&animation::animation_list[common::current_animation]).skip();
-            }
+            (&animation::animation_list[common::current_animation]).skip();
             while(!step_program(&program));
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
@@ -230,14 +230,10 @@ fn void main() {
                     if(character.visible) {
                         Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
-                        if(common::currently_animating) {
-                            // asm("int3");
-                            (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
-                            animation::animation_list[common::current_animation].apply();
-                            raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
-                        } else {
-                            raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
-                        }
+
+                        (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
+                        animation::animation_list[common::current_animation].apply();
+                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
                     }
                 };
 
@@ -255,6 +251,27 @@ fn void main() {
                 common::WHITE
             );
 
+            imgui::raylib_begin();
+            imgui::begin("debug system");
+                imgui::begin_tab_bar("debug tab bar");
+
+                if(imgui::begin_tab_item("Animation")) {
+                    char[1024] buffer;
+                    io::bprintf(&buffer, "Current animation index: %d, type: %s\0", common::current_animation, animation::animation_list[common::current_animation].animation_type);
+                    imgui::text((ZString)&buffer);
+
+                    if(imgui::button("Reset animation")) {
+                        (&animation::animation_list[common::current_animation]).reset();
+                    }
+
+                    animation::animation_list[common::current_animation].imgui_debug_visualize(common::current_animation);
+
+                    imgui::end_tab_item();
+                }
+
+                imgui::end_tab_bar();
+            imgui::end();
+            imgui::raylib_end();
         raylib::end_drawing();
     }
 

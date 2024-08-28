@@ -25,5 +25,4 @@ struct Character {
 
 HashMap(<char[], Character>) character_table;
 
-bool           currently_animating = false;
-AnimationIndex current_animation;
+AnimationIndex current_animation = 0;
