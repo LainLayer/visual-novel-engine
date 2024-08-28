@@ -3,6 +3,7 @@ module animation;
 import common;
 
 import std::io;
+import std::math;
 import std::collections::list;
 
 const usz MAX_TASKS_PER_NODE = 32;
@@ -131,6 +132,6 @@ fn void Animation.apply(animation) {
         float      progress  = animation.step / animation.duration;
         Character* character = common::character_table.get_ref(animation.character_name)!!;
 
-        character.position = common::interpolate(animation.slide_from, animation.slide_to, progress);
+        character.position = animation.slide_from.lerp(animation.slide_to, progress);
     }
 }

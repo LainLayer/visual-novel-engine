@@ -27,7 +27,3 @@ HashMap(<char[], Character>) character_table;
 
 bool           currently_animating = false;
 AnimationIndex current_animation;
-
-fn Vector2 interpolate(Vector2 start, Vector2 end, float progress) {
-    return start * (1.0 - progress) + (end * progress);
-}
