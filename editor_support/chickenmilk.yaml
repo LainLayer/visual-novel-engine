@@ -1,0 +1,31 @@
+filetype: chickenmilk
+
+detect:
+    filename: "\\.chickenmilk$"
+
+rules:
+    - statement: "\\b(header|scene|character|flag|say|goto|spawn|show|hide|move|emote|end)\\b"
+    - special: "\\b(slide|sequence|group|loop)\\b"
+    - type: "\\b(bool|int)\\b"
+    - symbol.operator: "[+\\-*/%^<>#=!&|,.;:]"
+    - symbol.brackets: "[(){}]|\\[|\\]"
+    - constant.number: "\\b\\d+\\.?\\d*\\b"
+    - constant.bool: "\\b(true|false)\\b"
+    - constant.string:
+            start: "\""
+            end: "\""
+            skip: "\\\\."
+            rules:
+                - constant.specialChar: "\\\\([\"'abfnrtv\\\\]|[0-3]?[0-7]{1,2}|x[0-9A-Fa-f]{1,2}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})"
+
+    - comment:
+            start: "//"
+            end: "$"
+            rules:
+                - todo: "(TODO):?"
+
+    - comment:
+        start: "/\\*"
+        end: "\\*/"
+        rules:
+            - todo: "(TODO):?"
