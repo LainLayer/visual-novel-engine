@@ -147,28 +147,26 @@ fn void Animation.apply(animation) {
     }
 }
 
-char[1024] debug_buffer;
 fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
-    io::bprintf(&debug_buffer, "%s##%s\0", animation.animation_type, list_index);
-    if(imgui::tree_node((ZString)&debug_buffer)) {
-        switch(animation.animation_type) {
-        case SEQUENCE:
-        case GROUP:
-            foreach(AnimationIndex index : animation.animations) animation_list[index].imgui_debug_visualize(index);
-        case SLIDE:
-            io::bprintf(
-                &debug_buffer,
-                "slide '%s' from %.2f,%.2f to %.2f,%.2f\0",
-                animation.character_name,
-                animation.slide_from.x,
-                animation.slide_from.y,
-                animation.slide_to.x,
-                animation.slide_to.y
-            );
-            imgui::text((ZString)&debug_buffer);
-            imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
-        default: break;
+    @pool() {
+        if(imgui::tree_node(string::tformat_zstr("%s##%s", animation.animation_type, list_index))) {
+            switch(animation.animation_type) {
+            case SEQUENCE:
+            case GROUP:
+                foreach(AnimationIndex index : animation.animations) animation_list[index].imgui_debug_visualize(index);
+            case SLIDE:
+                imgui::text(string::tformat_zstr(
+                    "slide '%s' from %.2f,%.2f to %.2f,%.2f",
+                    animation.character_name,
+                    animation.slide_from.x,
+                    animation.slide_from.y,
+                    animation.slide_to.x,
+                    animation.slide_to.y
+                ));
+                imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
+            case IDLE: break;
+            }
+            imgui::tree_pop();
         }
-        imgui::tree_pop();
-    }
+    };
 }

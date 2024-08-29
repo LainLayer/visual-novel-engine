@@ -43,7 +43,7 @@ const float FONT_SIZE    = 18.0;
 const float TEXT_PADDING = 10.0;
 const float LINE_SPACING =  5.0;
 
-fn Rectangle Rectangle.shrink(rectangle, float n) @inline {
+macro Rectangle Rectangle.shrink(rectangle, float n) {
     return {
         .x      = rectangle.x + n,
         .y      = rectangle.y + n,
@@ -174,9 +174,10 @@ fn void handle_window_resize() {
 fn void load_assets() {
     common::character_table.@each(; char[] name, Character character) {
         character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            char[2048] buffer;
-            io::bprintf(&buffer, "%s\0", sprite_data.filename);
-            character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture((ZString)&buffer);
+            @pool() {
+                character.emotion_sprite_table.get_ref(emotion)!!.texture
+                    = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
+            };
         };
     };
 }
@@ -256,9 +257,13 @@ fn void main() {
                 imgui::begin_tab_bar("debug tab bar");
 
                 if(imgui::begin_tab_item("Animation")) {
-                    char[1024] buffer;
-                    io::bprintf(&buffer, "Current animation index: %d, type: %s\0", common::current_animation, animation::animation_list[common::current_animation].animation_type);
-                    imgui::text((ZString)&buffer);
+                    @pool() {
+                        imgui::text(string::tformat_zstr(
+                            "Current animation index: %d, type: %s\0",
+                            common::current_animation,
+                            animation::animation_list[common::current_animation].animation_type
+                        ));
+                    };
 
                     if(imgui::button("Reset animation")) {
                         (&animation::animation_list[common::current_animation]).reset();
