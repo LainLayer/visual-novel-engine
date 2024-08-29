@@ -44,6 +44,12 @@ scene first_scene "My first epic scene" {
 
     say "looping!";
 
+    move nika 0 0;
+
+    slide nika 0 0 400 0 2;
+
+    say "just sliding!";
+
     goto second_scene;
 }
 
