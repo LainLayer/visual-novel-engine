@@ -35,9 +35,9 @@ struct Animation {
             union {
                 /* SLIDE */
                 struct {
-                    char[]  character_name;
-                    Vector2 slide_to;
-                    Vector2 slide_from;
+                    CharacterIndex character_index;
+                    Vector2        slide_to;
+                    Vector2        slide_from;
                 }
             }
         }
@@ -159,7 +159,7 @@ fn void Animation.apply(animation) {
 
     case SLIDE:
         float      progress  = animation.step / animation.duration;
-        Character* character = common::character_table.get_ref(animation.character_name)!!;
+        Character* character = &common::characters[animation.character_index];
 
         character.position = animation.slide_from.lerp(animation.slide_to, progress);
     case LOOP:
@@ -180,7 +180,7 @@ fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
             case SLIDE:
                 imgui::text(string::tformat_zstr(
                     "slide '%s' from %.2f,%.2f to %.2f,%.2f",
-                    animation.character_name,
+                    common::characters[animation.character_index].name,
                     animation.slide_from.x,
                     animation.slide_from.y,
                     animation.slide_to.x,

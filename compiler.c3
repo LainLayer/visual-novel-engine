@@ -1,17 +1,13 @@
 module compiler;
 
-import std::collections::map;
 import libc;
+import std::collections::map;
+import std::collections::list;
 
 import std::io;
-def printf = io::printf;
-def printn = io::printn;
-def print  = io::print;
 
 import common;
 import vm;
-import arena;
-import list;
 import raylib;
 import animation;
 
@@ -149,11 +145,11 @@ List(<Token>)  goto_promises;
 Token          current_token;
 
 macro bool character_exists(char[] name) {
-    return common::character_table.has_key(name);
+    return common::character_name_table.has_key(name);
 }
 
 macro bool character_has_emotion(char[] name, char[] emotion) {
-    return common::character_table[name]!!.emotion_sprite_table.has_key(emotion);
+    return common::get_character_by_name(name).emotion_sprite_table.has_key(emotion);
 }
 
 fn bool has_flag(char[] name) @inline {
@@ -165,44 +161,44 @@ fn bool has_flag(char[] name) @inline {
 }
 
 fn void print_syntax_tree() {
-    printf("scenario title: %s\n", scenario_title);
-    printn("scenario languages:");
+    io::printf("scenario title: %s\n", scenario_title);
+    io::printn("scenario languages:");
 
-    common::character_table.@each(; char[] name, Character character) {
-        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            printf("%s[%s] -> '%s'\n", name, emotion, sprite_data.filename);
+    common::character_name_table.@each(; char[] name, CharacterIndex index) {
+        common::characters[index].emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
+            io::printf("%s[%s] -> '%s'\n", name, emotion, sprite_data.filename);
         };
     };
 
     foreach(char[] language : languages) {
-        printf(" - %s\n", language);
+        io::printf(" - %s\n", language);
     }
 
-    printn("flags:");
+    io::printn("flags:");
     foreach(Flag flag : flags) {
-        printf(" - %s - ", flag.name);
+        io::printf(" - %s - ", flag.name);
         switch(flag.flag_type) {
         case TypeType.BOOLEAN:
-            printf("%s\n", flag.boolean_value);
+            io::printf("%s\n", flag.boolean_value);
         case TypeType.INTEGER:
-            printf("%d\n", flag.integer_value);
+            io::printf("%d\n", flag.integer_value);
         }
     }
 
-    printn("Scenes:");
+    io::printn("Scenes:");
     foreach(Scene scene : scenes) {
-        printf(" - %s :: '%s'\n", scene.scene_id, scene.description);
+        io::printf(" - %s :: '%s'\n", scene.scene_id, scene.description);
         foreach(Action action : scene.actions) {
-            printf("   + %s: ", action.action_type);
+            io::printf("   + %s: ", action.action_type);
             switch(action.action_type) {
-            case ActionType.SAY:            printf("%s\n", action.text_to_say);
-            case ActionType.GOTO:           printf("%s\n", action.scene_id);
-            case ActionType.MOVE:           printf("%s\n", action.position);
-            case ActionType.END:            printf("end\n");
-            case ActionType.SPAWN:          printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
-            case ActionType.SET_VISIBILITY: printf("%s\n", action.visibility);
-            case ActionType.EMOTE:          printf("%s\n", action.emotion_name);
-            case ActionType.ANIMATION:      printf("%s\n", action.animation);
+            case ActionType.SAY:            io::printf("%s\n", action.text_to_say);
+            case ActionType.GOTO:           io::printf("%s\n", action.scene_id);
+            case ActionType.MOVE:           io::printf("%s\n", action.position);
+            case ActionType.END:            io::printf("end\n");
+            case ActionType.SPAWN:          io::printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
+            case ActionType.SET_VISIBILITY: io::printf("%s\n", action.visibility);
+            case ActionType.EMOTE:          io::printf("%s\n", action.emotion_name);
+            case ActionType.ANIMATION:      io::printf("%s\n", action.animation);
             }
         }
     }
@@ -218,17 +214,17 @@ fn bool is_identifier_start_character(char c) @inline {
 fn bool is_numeric(char c) @inline { return c >= '0' && c <= '9'; }
 
 fn void die(String format, args...) @noreturn {
-    printf("ERROR:%s:%d:%d: ", filename, current_token.location.line + 1, current_token.location.character);
-    printf(format, ...args);
-    print("\n");
+    io::printf("ERROR:%s:%d:%d: ", filename, current_token.location.line + 1, current_token.location.character);
+    io::printf(format, ...args);
+    io::print("\n");
     libc::exit(1);
     unreachable();
 }
 
 fn void die_with_location(Location location, String format, args...) @noreturn {
-    printf("ERROR:%s:%d:%d: ", filename, location.line + 1, location.character);
-    printf(format, ...args);
-    print("\n");
+    io::printf("ERROR:%s:%d:%d: ", filename, location.line + 1, location.character);
+    io::printf(format, ...args);
+    io::print("\n");
     libc::exit(1);
     unreachable();
 }
@@ -431,12 +427,12 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
 
         expect(TokenType.SEMICOLON);
 
-        animation.animation_type = AnimationType.SLIDE;
-        animation.step           = 0.0;
-        animation.duration       = duration;
-        animation.character_name = character_name;
-        animation.slide_to       = slide_to;
-        animation.slide_from     = slide_from;
+        animation.animation_type  = AnimationType.SLIDE;
+        animation.step            = 0.0;
+        animation.duration        = duration;
+        animation.character_index = common::character_name_table[character_name]!!;
+        animation.slide_to        = slide_to;
+        animation.slide_from      = slide_from;
     case TokenType.KEYWORD_LOOP:
         if(recursion_level > 0) die("Looping animations are only allowed at the top level");
         bump_lexer();
@@ -519,7 +515,7 @@ fn void parse_scene() {
             char[] name    = expect(TokenType.IDENTIFIER).identifier_value;
             char[] emotion = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(common::character_table.has_key(name) && common::character_table[name]!!.emotion_sprite_table.has_key(emotion)) {
+            if(character_exists(name) && character_has_emotion(name, emotion)) {
                 action.character_name = name;
                 action.emotion_name   = emotion;
                 action.position.x     = expect(TokenType.INTEGER_LITERAL).integer_value;
@@ -640,15 +636,16 @@ fn void parse_character() {
             char[] filename = current_token.string_value; // @cleanup validate filename
             char[] emotion  = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(common::character_table.has_key(character_name) && common::character_table[character_name]!!.emotion_sprite_table.has_key(emotion)) {
+            if(character_exists(character_name) && character_has_emotion(character_name, emotion)) {
                 die("Redefinition of emotion '%s' for character '%s'", emotion, character_name);
             }
 
-            if(!common::character_table.has_key(character_name)) {
-                common::character_table[character_name] = Character { .visible = false, .current_emotion = emotion };
+            if(!character_exists(character_name)) {
+                common::characters.push(Character { .visible = false, .current_emotion = emotion, .name = character_name });
+                common::character_name_table[character_name] = (uint)(common::characters.len() - 1);
             }
 
-            common::character_table.get_ref(character_name)!!.emotion_sprite_table[emotion] = SpriteData { .filename = filename };
+            common::get_character_by_name(character_name).emotion_sprite_table[emotion] = SpriteData { .filename = filename };
 
             count++;
         } else {
@@ -688,6 +685,11 @@ fn Program! compile_file(String path) {
         case TokenType.KEYWORD_CHARACTER: parse_character();
         default:                          die("unknown token %s", current_token.token_type);
         }
+    }
+
+    defer {
+        foreach(Scene scene : scenes) scene.actions.free();
+        scenes.free();
     }
 
     if(goto_promises.size > 0) {
@@ -731,42 +733,42 @@ fn Program! compile_file(String path) {
             case SPAWN:
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_visibility_to = true,
                     .blocking          = false,
                 });
 
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_POSITION,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_position_to   = action.position,
                     .blocking          = false,
                 });
 
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_EMOTE,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_emotion_to    = action.emotion_name,
                     .blocking          = false,
                 });
             case SET_VISIBILITY:
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_visibility_to = action.visibility,
                     .blocking          = false,
                 });
             case EMOTE:
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_EMOTE,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_emotion_to    = action.emotion_name,
                     .blocking          = false,
                 });
             case MOVE:
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_POSITION,
-                    .character_name    = action.character_name,
+                    .character_index   = common::character_name_table[action.character_name]!!,
                     .set_position_to   = action.position,
                     .blocking          = false,
                 });

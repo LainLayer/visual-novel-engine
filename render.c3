@@ -93,18 +93,18 @@ fn bool step_program(Program* program) {
     case InstructionType.GOTO_LABEL:
         program.instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
-        inst.previous_visibility = common::character_table[inst.character_name]!!.visible;
-        common::character_table.get_ref(inst.character_name)!!.visible = inst.set_visibility_to;
+        inst.previous_visibility = common::characters[inst.character_index].visible;
+        (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
 
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
-        inst.previous_position = common::character_table[inst.character_name]!!.position;
-        common::character_table.get_ref(inst.character_name)!!.position = inst.set_position_to;
+        inst.previous_position = common::characters[inst.character_index].position;
+        (&common::characters[inst.character_index]).position = inst.set_position_to;
 
         program.instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
-        inst.previous_emotion = common::character_table[inst.character_name]!!.current_emotion;
-        common::character_table.get_ref(inst.character_name)!!.current_emotion = inst.set_emotion_to;
+        inst.previous_emotion = common::characters[inst.character_index].current_emotion;
+        (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
 
         program.instruction_pointer += 1;
     case InstructionType.ANIMATE:
@@ -145,9 +145,9 @@ fn void step_back(Program* program) {
 
         common::current_animation   = inst.previous_animation_index;
 
-    case InstructionType.CHARACTER_VISIBILITY_SET: common::character_table.get_ref(inst.character_name)!!.visible         = inst.previous_visibility;
-    case InstructionType.CHARACTER_POSITION:       common::character_table.get_ref(inst.character_name)!!.position        = inst.previous_position;
-    case InstructionType.CHARACTER_EMOTE:          common::character_table.get_ref(inst.character_name)!!.current_emotion = inst.previous_emotion;
+    case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
+    case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
+    case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
     case InstructionType.GOTO_LABEL:               break;
     }
     program.instruction_pointer = inst.previous_instruction_pointer;
@@ -172,14 +172,14 @@ fn void handle_window_resize() {
 }
 
 fn void load_assets() {
-    common::character_table.@each(; char[] name, Character character) {
+    foreach(Character character : common::characters) {
         character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
             @pool() {
                 character.emotion_sprite_table.get_ref(emotion)!!.texture
                     = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
             };
         };
-    };
+    }
 }
 
 fn void main() {
@@ -227,7 +227,7 @@ fn void main() {
             raylib::begin_texture_mode(game_texture);
                 raylib::clear_background({0x18, 0x18, 0x18, 255});
 
-                common::character_table.@each(; char[] name, Character character) {
+                foreach(Character character : common::characters) {
                     if(character.visible) {
                         Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
@@ -236,7 +236,7 @@ fn void main() {
                         animation::animation_list[common::current_animation].apply();
                         raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
                     }
-                };
+                }
 
                 raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
                 raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, common::WHITE);

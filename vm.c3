@@ -21,7 +21,7 @@ enum InstructionType : char {
     ANIMATE,
 }
 
-struct Instruction {
+struct Instruction @packed {
     InstructionType instruction_type;
 
     bool blocking;
@@ -42,7 +42,7 @@ struct Instruction {
         }
 
         struct {
-            char[] character_name;
+            CharacterIndex character_index;
 
             union {
                 /* CHARACTER_VISIBILITY_SET */
