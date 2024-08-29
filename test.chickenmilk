@@ -50,6 +50,24 @@ scene first_scene "My first epic scene" {
 
     say "just sliding!";
 
+    show nikab;
+
+    loop group {
+        sequence {
+            slide nika 0 600 0 0   1;
+            slide nika 0 0   0 600 1;
+            slide nika 0 600 0 0   1;
+            slide nika 0 0   0 600 1;
+        }
+
+        sequence {
+            slide nikab 800 600 800 0   2;
+            slide nikab 800 0   800 600 2;
+        }
+    }
+
+    say "jumping up and down!";
+
     goto second_scene;
 }
 

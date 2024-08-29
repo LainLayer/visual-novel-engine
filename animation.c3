@@ -149,7 +149,7 @@ fn void Animation.tick(&animation, float delta_time) {
 fn void Animation.apply(animation) {
     switch(animation.animation_type) {
     case SEQUENCE:
-        for (int i = (int)animation.animations.len(); i >= 0; i--) {
+        for (int i = (int)animation.animations.len()-1; i >= 0; i--) {
             if(!animation_list[animation.animations[i]].is_finished()) {
                 animation_list[animation.animations[i]].apply();
             }
