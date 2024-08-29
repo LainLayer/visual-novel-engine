@@ -53,6 +53,7 @@ enum TokenType : char {
     KEYWORD_SEQUENCE,
     KEYWORD_GROUP,
     KEYWORD_SLIDE,
+    KEYWORD_LOOP,
 
     KEYWORD_END,
 
@@ -269,6 +270,7 @@ fn Token parse_identifier() {
     case "group":     result.token_type = TokenType.KEYWORD_GROUP;
     case "scene":     result.token_type = TokenType.KEYWORD_SCENE;
     case "emote":     result.token_type = TokenType.KEYWORD_EMOTE;
+    case "loop":      result.token_type = TokenType.KEYWORD_LOOP;
     case "flag":      result.token_type = TokenType.KEYWORD_FLAG;
     case "show":      result.token_type = TokenType.KEYWORD_SHOW;
     case "hide":      result.token_type = TokenType.KEYWORD_HIDE;
@@ -408,7 +410,7 @@ fn void parse_header() {
     }
 }
 
-fn void parse_animation(Animation* animation) {
+fn void parse_animation(Animation* animation, uint recursion_level = 0) {
     switch(current_token.token_type) {
     case TokenType.KEYWORD_SLIDE:
         char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
@@ -435,6 +437,13 @@ fn void parse_animation(Animation* animation) {
         animation.character_name = character_name;
         animation.slide_to       = slide_to;
         animation.slide_from     = slide_from;
+    case TokenType.KEYWORD_LOOP:
+        if(recursion_level > 0) die("Looping animations are only allowed at the top level");
+        bump_lexer();
+        animation.animation_type = AnimationType.LOOP;
+        Animation sub_animation;
+        parse_animation(&sub_animation, recursion_level + 1);
+        animation.push(sub_animation)!!;
 
     case TokenType.KEYWORD_SEQUENCE:
         animation.animation_type = AnimationType.SEQUENCE;
@@ -447,7 +456,7 @@ fn void parse_animation(Animation* animation) {
 
         while(current_token.token_type != TokenType.CLOSE_BRACKET) {
             Animation sub_animation;
-            parse_animation(&sub_animation);
+            parse_animation(&sub_animation, recursion_level + 1);
             animation.push(sub_animation)!!;
             bump_lexer();
         }
@@ -462,7 +471,7 @@ fn void parse_animation(Animation* animation) {
 
         while(current_token.token_type != TokenType.CLOSE_BRACKET) {
             Animation sub_animation;
-            parse_animation(&sub_animation);
+            parse_animation(&sub_animation, recursion_level + 1);
             animation.push(sub_animation)!!;
             bump_lexer();
         }
@@ -566,6 +575,7 @@ fn void parse_scene() {
             expect(TokenType.SEMICOLON);
 
         case TokenType.KEYWORD_SLIDE:
+        case TokenType.KEYWORD_LOOP:
         case TokenType.KEYWORD_GROUP:
         case TokenType.KEYWORD_SEQUENCE:
             action.action_type = ActionType.ANIMATION;
