@@ -1,8 +1,9 @@
 module vm;
 
 import std::collections::map;
+import std::collections::list;
+
 import std::io;
-import list;
 import common;
 import raylib;
 import animation;
@@ -23,7 +24,7 @@ enum InstructionType : char {
     ANIMATE,
 }
 
-struct Instruction @packed {
+struct Instruction {
     InstructionType instruction_type;
 
     bool blocking;

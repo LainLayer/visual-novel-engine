@@ -139,7 +139,10 @@ fn bool Program.last_instruction_blocking(program) {
 fn void step_back(Program* program) {
     if(program.history.size < 2) return;
 
-    Instruction inst = program.history.pop();
+    // this is 2 lines because of some bug
+    Instruction inst = program.history[program.history.len()-1];
+    program.history.pop()!!;
+
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
     case InstructionType.END_SCENARIO:
@@ -180,18 +183,15 @@ fn void handle_window_resize() {
     };
 }
 
-bool assets_loaded         = false;
-usz  total_sprites_to_load = 0;
-usz  loaded_sprites        = 0;
+usz total_sprites_to_load = 0;
+usz loaded_sprites        = 0;
 
-fn void load_assets(void* arg) { // TODO: Use a threadpool to load all the assets at the same time
-
-    foreach(&sprite_data : common::sprite_data_list) {
+fn void load_single_sprite_data(void* arg) {
+    SpriteData* sprite_data = (SpriteData*) arg;
+    @pool() {
         sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
-        loaded_sprites++;
-    }
-
-    assets_loaded = true;
+    };
+    loaded_sprites++;
 }
 
 fn void assets_to_textures() {
@@ -209,7 +209,8 @@ fn void main() {
 
     while(!step_program(&program));
 
-    io::printf("instruction size: %d\n", $sizeof(Instruction.typeid));
+    io::printf("\ninstruction size: %d\n", Instruction.sizeof);
+    io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
@@ -225,14 +226,18 @@ fn void main() {
     defer raylib::unload_render_texture(game_texture);
 
     {
+        ThreadPool(<32>) sprite_loading_thread_pool;
+
         total_sprites_to_load = common::sprite_data_list.len();
 
-        Thread loading_thread;
+        sprite_loading_thread_pool.init()!!;
+        defer sprite_loading_thread_pool.destroy()!!;
 
-        loading_thread.create((ThreadFn)&load_assets, null)!!;
-        loading_thread.detach()!!;
+        foreach(&sprite_data : common::sprite_data_list) {
+            sprite_loading_thread_pool.push((ThreadFn) &load_single_sprite_data, sprite_data)!!;
+        }
 
-        while(!raylib::window_should_close() && !assets_loaded) {
+        while(!raylib::window_should_close() && !(loaded_sprites == total_sprites_to_load)) {
             raylib::begin_drawing();
                 raylib::clear_background({0x25, 0x25, 0x25, 255});
                 @pool() {

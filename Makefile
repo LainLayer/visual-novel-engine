@@ -11,7 +11,7 @@ IMGUI_FLAGS=-DPLATFORM_DRM -DCIMGUI_USE_GLFW -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=
 
 raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o
 
-c3_files := arena.c3 common.c3 compiler.c3 list.c3 vm.c3 raylib.c3 animation.c3 imgui.c3
+c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3
 
 all: render
 
