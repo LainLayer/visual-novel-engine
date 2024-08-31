@@ -14,6 +14,7 @@ const Color RED   = { 255,   0,   0, 255 };
 struct SpriteData {
     char[]    filename;
     Texture2D texture;
+    Image     image;
 }
 
 struct Character {
@@ -49,4 +50,15 @@ macro bool background_exists(char[] name) {
 macro void add_background(char[] name, char[] filename) {
     backgrounds.push(SpriteData { .filename = filename });
     background_name_table[name] = (int)(backgrounds.len() - 1);
+}
+
+fn uint number_of_sprite_data() {
+    uint result = 0;
+    foreach(character : characters) {
+        result += (uint)character.emotion_sprite_table.len();
+    }
+
+    result += (uint)backgrounds.len();
+
+    return result;
 }

@@ -2,6 +2,7 @@ module render;
 
 import std::io;
 import std::math;
+import std::thread;
 
 import compiler;
 import vm;
@@ -179,19 +180,45 @@ fn void handle_window_resize() {
     };
 }
 
-fn void load_assets() {
+bool assets_loaded         = false;
+uint total_sprites_to_load = 0;
+uint loaded_sprites        = 0;
+
+fn void load_assets(void* arg) { // TODO: Use a threadpool to load all the assets at the same time
     foreach(Character character : common::characters) {
         character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
             @pool() {
-                character.emotion_sprite_table.get_ref(emotion)!!.texture
-                    = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
+                character.emotion_sprite_table.get_ref(emotion)!!.image
+                    = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
+                loaded_sprites++;
             };
         };
     }
 
     foreach(&sprite_data : common::backgrounds) {
         @pool() {
-            sprite_data.texture = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
+            sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
+            loaded_sprites++;
+        };
+    }
+
+    assets_loaded = true;
+}
+
+fn void assets_to_textures() {
+    foreach(Character character : common::characters) {
+        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
+            @pool() {
+                character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture_from_image(sprite_data.image);
+                raylib::unload_image(sprite_data.image);
+            };
+        };
+    }
+
+    foreach(&sprite_data : common::backgrounds) {
+        @pool() {
+            sprite_data.texture = raylib::load_texture_from_image(sprite_data.image);
+            raylib::unload_image(sprite_data.image);
         };
     }
 }
@@ -209,8 +236,6 @@ fn void main() {
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
 
-    load_assets();
-
     raylib::set_target_fps(60);
 
     imgui::raylib_setup(true);
@@ -220,6 +245,35 @@ fn void main() {
 
     game_texture = raylib::load_render_texture((CInt)GAME_WIDTH, (CInt)GAME_HEIGHT);
     defer raylib::unload_render_texture(game_texture);
+
+    {
+        total_sprites_to_load = common::number_of_sprite_data();
+
+        Thread loading_thread;
+
+        loading_thread.create((ThreadFn)&load_assets, null)!!;
+        loading_thread.detach()!!;
+
+        while(!raylib::window_should_close() && !assets_loaded) {
+            raylib::begin_drawing();
+                raylib::clear_background({0x25, 0x25, 0x25, 255});
+                @pool() {
+                    ZString loading_text = string::tformat_zstr("loading %d/%d sprites...",loaded_sprites, total_sprites_to_load);
+                    CInt    text_width   = raylib::measure_text(loading_text, 24);
+                    raylib::draw_text(
+                        loading_text,
+                        raylib::get_screen_width()/2 - text_width/2,
+                        raylib::get_screen_height()/2 - 12,
+                        24,
+                        common::WHITE
+                    );
+                };
+            raylib::end_drawing();
+        }
+
+        assets_to_textures(); // OpenGL is shit! It crashes if you try loading textures in a separate thread.
+    }
+
 
     while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {

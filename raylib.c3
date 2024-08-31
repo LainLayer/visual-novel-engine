@@ -194,6 +194,9 @@ extern fn CInt  get_glyph_index(Font, CInt)                               @exter
 extern fn void  draw_text_codepoint(Font, CInt, float[<2>], float, Color) @extern("DrawTextCodepoint");
 extern fn Font  get_font_default()                                        @extern("GetFontDefault");
 
+extern fn Texture2D       load_texture_from_image(Image)                         @extern("LoadTextureFromImage");
+extern fn Image           load_image(ZString)                                    @extern("LoadImage");
+extern fn void            unload_image(Image)                                    @extern("UnloadImage");
 extern fn Texture2D       load_texture(ZString)                                  @extern("LoadTexture");
 extern fn RenderTexture2D load_render_texture(CInt, CInt)                        @extern("LoadRenderTexture");
 extern fn void            unload_render_texture(RenderTexture2D)                 @extern("UnloadRenderTexture");
