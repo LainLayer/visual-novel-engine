@@ -35,6 +35,7 @@ enum TokenType : char {
     KEYWORD_HEADER,
     KEYWORD_SCENE,
     KEYWORD_CHARACTER,
+    KEYWORD_BACKGROUND,
     KEYWORD_FLAG,
 
     KEYWORD_SAY,
@@ -102,6 +103,8 @@ enum ActionType : char {
     MOVE,
     EMOTE,
 
+    SET_BACKGROUND,
+
     ANIMATION,
 
     END,
@@ -121,7 +124,9 @@ struct Action {
             bool    visibility;   /* SET_VISIBILITY */
         }
 
-        AnimationIndex animation;
+        AnimationIndex animation; /* ANIMATION      */
+
+        BackgroundIndex background_index; /* SET_BACKGROUND */
     }
 }
 
@@ -199,6 +204,7 @@ fn void print_syntax_tree() {
             case ActionType.SET_VISIBILITY: io::printf("%s\n", action.visibility);
             case ActionType.EMOTE:          io::printf("%s\n", action.emotion_name);
             case ActionType.ANIMATION:      io::printf("%s\n", action.animation);
+            case ActionType.SET_BACKGROUND: io::printf("%s\n", action.background_index);
             }
         }
     }
@@ -258,29 +264,30 @@ fn Token parse_identifier() {
     switch(text) {
 
     /* Keywords */
-    case "character": result.token_type = TokenType.KEYWORD_CHARACTER;
-    case "sequence":  result.token_type = TokenType.KEYWORD_SEQUENCE;
-    case "header":    result.token_type = TokenType.KEYWORD_HEADER;
-    case "spawn":     result.token_type = TokenType.KEYWORD_SPAWN;
-    case "slide":     result.token_type = TokenType.KEYWORD_SLIDE;
-    case "group":     result.token_type = TokenType.KEYWORD_GROUP;
-    case "scene":     result.token_type = TokenType.KEYWORD_SCENE;
-    case "emote":     result.token_type = TokenType.KEYWORD_EMOTE;
-    case "loop":      result.token_type = TokenType.KEYWORD_LOOP;
-    case "flag":      result.token_type = TokenType.KEYWORD_FLAG;
-    case "show":      result.token_type = TokenType.KEYWORD_SHOW;
-    case "hide":      result.token_type = TokenType.KEYWORD_HIDE;
-    case "move":      result.token_type = TokenType.KEYWORD_MOVE;
-    case "goto":      result.token_type = TokenType.KEYWORD_GOTO;
-    case "say":       result.token_type = TokenType.KEYWORD_SAY;
-    case "end":       result.token_type = TokenType.KEYWORD_END;
+    case "background": result.token_type = TokenType.KEYWORD_BACKGROUND;
+    case "character":  result.token_type = TokenType.KEYWORD_CHARACTER;
+    case "sequence":   result.token_type = TokenType.KEYWORD_SEQUENCE;
+    case "header":     result.token_type = TokenType.KEYWORD_HEADER;
+    case "spawn":      result.token_type = TokenType.KEYWORD_SPAWN;
+    case "slide":      result.token_type = TokenType.KEYWORD_SLIDE;
+    case "group":      result.token_type = TokenType.KEYWORD_GROUP;
+    case "scene":      result.token_type = TokenType.KEYWORD_SCENE;
+    case "emote":      result.token_type = TokenType.KEYWORD_EMOTE;
+    case "loop":       result.token_type = TokenType.KEYWORD_LOOP;
+    case "flag":       result.token_type = TokenType.KEYWORD_FLAG;
+    case "show":       result.token_type = TokenType.KEYWORD_SHOW;
+    case "hide":       result.token_type = TokenType.KEYWORD_HIDE;
+    case "move":       result.token_type = TokenType.KEYWORD_MOVE;
+    case "goto":       result.token_type = TokenType.KEYWORD_GOTO;
+    case "say":        result.token_type = TokenType.KEYWORD_SAY;
+    case "end":        result.token_type = TokenType.KEYWORD_END;
 
     /* Literals */
-    case "true":      result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
-    case "false":     result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
-    case "bool":      result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
-    case "int" :      result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
-    default:          result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
+    case "true":       result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
+    case "false":      result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
+    case "bool":       result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
+    case "int" :       result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
+    default:           result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
     }
 
     return result;
@@ -582,6 +589,17 @@ fn void parse_scene() {
 
             action.animation = animation::animation_list.len() - 1;
 
+        case TokenType.KEYWORD_BACKGROUND:
+            action.action_type = ActionType.SET_BACKGROUND;
+
+            char[] background_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!common::background_exists(background_name)) die("Referencing non-existent background '%s'", background_name);
+
+            expect(TokenType.SEMICOLON);
+
+            action.background_index = common::background_name_table[background_name]!!;
+
         default:
             die("unimplemented action %s", current_token.token_type);
         }
@@ -654,6 +672,16 @@ fn void parse_character() {
     }
 }
 
+fn void parse_background() {
+    char[] background_name = expect(TokenType.IDENTIFIER).identifier_value;
+    if(common::background_exists(background_name)) die("Redefinition of existing background named '%s'", background_name);
+
+    char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
+    expect(TokenType.SEMICOLON);
+
+    common::add_background(background_name, filename);
+}
+
 fn bool has_scene_with_id(char[] id) {
     foreach(Scene scene : scenes) {
         if(scene.scene_id == id) return true;
@@ -679,10 +707,11 @@ fn Program! compile_file(String path) {
         switch(current_token.token_type) {
         // each parse function must finish on it's last token,
         // since the for loop calls lexer.bump() at the end
-        case TokenType.KEYWORD_HEADER:    parse_header();
-        case TokenType.KEYWORD_SCENE:     parse_scene();
-        case TokenType.KEYWORD_FLAG:      parse_flag();
-        case TokenType.KEYWORD_CHARACTER: parse_character();
+        case TokenType.KEYWORD_HEADER:     parse_header();
+        case TokenType.KEYWORD_SCENE:      parse_scene();
+        case TokenType.KEYWORD_FLAG:       parse_flag();
+        case TokenType.KEYWORD_CHARACTER:  parse_character();
+        case TokenType.KEYWORD_BACKGROUND: parse_background();
         default:                          die("unknown token %s", current_token.token_type);
         }
     }
@@ -776,6 +805,12 @@ fn Program! compile_file(String path) {
                 program.instructions.push({
                     .instruction_type  = InstructionType.ANIMATE,
                     .animation_index   = action.animation,
+                    .blocking          = false,
+                });
+            case SET_BACKGROUND:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.BACKGROUND,
+                    .background_index  = action.background_index,
                     .blocking          = false,
                 });
             }

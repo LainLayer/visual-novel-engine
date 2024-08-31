@@ -109,9 +109,14 @@ fn bool step_program(Program* program) {
         program.instruction_pointer += 1;
     case InstructionType.ANIMATE:
         inst.previous_animation_index = common::current_animation;
-        common::current_animation   = inst.animation_index;
+        common::current_animation     = inst.animation_index;
 
         (&animation::animation_list[inst.animation_index]).reset();
+
+        program.instruction_pointer += 1;
+    case InstructionType.BACKGROUND:
+        inst.previous_background_index = common::current_background;
+        common::current_background     = inst.background_index;
 
         program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
@@ -144,6 +149,9 @@ fn void step_back(Program* program) {
         animation::animation_list[inst.animation_index].apply();
 
         common::current_animation   = inst.previous_animation_index;
+
+    case InstructionType.BACKGROUND:
+        common::current_background = inst.previous_background_index;
 
     case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
     case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
@@ -178,6 +186,12 @@ fn void load_assets() {
                 character.emotion_sprite_table.get_ref(emotion)!!.texture
                     = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
             };
+        };
+    }
+
+    foreach(&sprite_data : common::backgrounds) {
+        @pool() {
+            sprite_data.texture = raylib::load_texture(string::tformat_zstr("%s", sprite_data.filename));
         };
     }
 }
@@ -226,6 +240,18 @@ fn void main() {
 
             raylib::begin_texture_mode(game_texture);
                 raylib::clear_background({0x18, 0x18, 0x18, 255});
+
+                if(common::current_background != -1) {
+                    Texture2D background_texture = common::backgrounds[common::current_background].texture;
+                    raylib::draw_texture_pro(
+                        background_texture,
+                        { 0, 0, background_texture.width, background_texture.height },
+                        { 0, 0, GAME_WIDTH, GAME_HEIGHT },
+                        { 0, 0 },
+                        0.0,
+                        common::WHITE
+                    );
+                }
 
                 foreach(Character character : common::characters) {
                     if(character.visible) {

@@ -18,6 +18,8 @@ enum InstructionType : char {
     CHARACTER_POSITION,
     CHARACTER_EMOTE,
 
+    BACKGROUND,
+
     ANIMATE,
 }
 
@@ -71,6 +73,12 @@ struct Instruction @packed {
             AnimationIndex previous_animation_index;
         }
 
+        /* BACKGROUND */
+        struct {
+            BackgroundIndex background_index;
+            BackgroundIndex previous_background_index;
+        }
+
         /* END_SCENARIO */
         // nothing needed
     }
@@ -98,6 +106,8 @@ fn void Program.print(program) {
             io::printf("emotion: %s\n", instruction.set_emotion_to);
         case InstructionType.ANIMATE:
             io::printf("animation index: %s\n", instruction.animation_index);
+        case InstructionType.BACKGROUND:
+            io::printf("background index: %s\n", instruction.background_index);
         case InstructionType.END_SCENARIO:
             break;
         }

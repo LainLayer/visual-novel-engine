@@ -1,6 +1,8 @@
 header name "Bob's epic adventure";
 header languages "english" "russian";
 
+background warehouse "test_assets/warehouse.png";
+
 character nika "test_assets/illyustraciya_bez_nazvaniya_2.png" normal
                "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
                "test_assets/illyustraciya_bez_nazvaniya.png"   shy;
@@ -16,6 +18,9 @@ flag other_flag_b int  11;
 
 scene first_scene "My first epic scene" {
     say "epic.";
+
+    background warehouse;
+
     spawn nika  happy    0 0;
     spawn nikab normal 800 0;
 

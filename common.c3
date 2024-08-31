@@ -34,3 +34,19 @@ macro Character* get_character_by_name(char[] name) {
 }
 
 AnimationIndex current_animation = 0;
+
+def BackgroundIndex = int;
+List(<SpriteData>) backgrounds;
+
+BackgroundIndex current_background = -1;
+
+HashMap(<char[], BackgroundIndex>) background_name_table;
+
+macro bool background_exists(char[] name) {
+    return background_name_table.has_key(name);
+}
+
+macro void add_background(char[] name, char[] filename) {
+    backgrounds.push(SpriteData { .filename = filename });
+    background_name_table[name] = (int)(backgrounds.len() - 1);
+}
