@@ -152,7 +152,9 @@ fn void step_back(Program* program) {
         (&animation::animation_list[inst.animation_index]).reset();
         animation::animation_list[inst.animation_index].apply();
 
-        common::current_animation   = inst.previous_animation_index;
+        common::current_animation = inst.previous_animation_index;
+
+        (&animation::animation_list[common::current_animation]).reset();
 
     case InstructionType.BACKGROUND:
         common::current_background = inst.previous_background_index;
@@ -290,7 +292,7 @@ fn void main() {
                     );
                 }
 
-                foreach(Character character : common::characters) {
+                foreach(&character : common::characters) {
                     if(character.visible) {
                         Texture2D sprite_texture = common::sprite_data_list[character.emotion_sprite_table[character.current_emotion]!!].texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
@@ -334,6 +336,32 @@ fn void main() {
 
                     animation::animation_list[common::current_animation].imgui_debug_visualize(common::current_animation);
 
+                    imgui::end_tab_item();
+                }
+
+                if(imgui::begin_tab_item("Characters")) {
+
+                    if(imgui::begin_table("Character table", 4, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+                        foreach(&character : common::characters) {
+                            @pool() {
+                                imgui::table_next_row(0, 0);
+
+                                imgui::table_set_column_index(0);
+                                imgui::text(string::tformat_zstr("%s", character.name));
+
+                                imgui::table_set_column_index(1);
+                                imgui::input_float("x axis", &character.position.x);
+
+                                imgui::table_set_column_index(2);
+                                imgui::input_float("y axis", &character.position.y);
+
+                                imgui::table_set_column_index(3);
+                                imgui::text(string::tformat_zstr("%s", character.current_emotion));
+                            };
+                        }
+
+                        imgui::end_table();
+                    }
                     imgui::end_tab_item();
                 }
 

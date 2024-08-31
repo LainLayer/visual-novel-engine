@@ -27,3 +27,10 @@ extern fn bool is_item_clicked(CInt mouse_button = 0)       @extern("igIsItemCli
 
 extern fn void same_line()                          @extern("igSameLine");
 extern fn void progress_bar(float, ImVec2, ZString) @extern("igProgressBar");
+
+extern fn bool begin_table(ZString str_id, CInt columns, SomeFlags flags, ImVec2 outer_size, float inner_width) @extern("igBeginTable");
+extern fn void end_table() @extern("igEndTable");
+extern fn void table_next_row(SomeFlags flags, float min_row_height) @extern("igTableNextRow");
+extern fn bool table_set_column_index(CInt index) @extern("igTableSetColumnIndex");
+
+extern fn bool input_float(ZString label, float* v, float step=1.0f, float step_fast=10.0f, ZString format="%.2f", SomeFlags flags=0) @extern("igInputFloat");
