@@ -181,45 +181,23 @@ fn void handle_window_resize() {
 }
 
 bool assets_loaded         = false;
-uint total_sprites_to_load = 0;
-uint loaded_sprites        = 0;
+usz  total_sprites_to_load = 0;
+usz  loaded_sprites        = 0;
 
 fn void load_assets(void* arg) { // TODO: Use a threadpool to load all the assets at the same time
-    foreach(Character character : common::characters) {
-        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            @pool() {
-                character.emotion_sprite_table.get_ref(emotion)!!.image
-                    = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
-                loaded_sprites++;
-            };
-        };
-    }
 
-    foreach(&sprite_data : common::backgrounds) {
-        @pool() {
-            sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
-            loaded_sprites++;
-        };
+    foreach(&sprite_data : common::sprite_data_list) {
+        sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
+        loaded_sprites++;
     }
 
     assets_loaded = true;
 }
 
 fn void assets_to_textures() {
-    foreach(Character character : common::characters) {
-        character.emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            @pool() {
-                character.emotion_sprite_table.get_ref(emotion)!!.texture = raylib::load_texture_from_image(sprite_data.image);
-                raylib::unload_image(sprite_data.image);
-            };
-        };
-    }
-
-    foreach(&sprite_data : common::backgrounds) {
-        @pool() {
-            sprite_data.texture = raylib::load_texture_from_image(sprite_data.image);
-            raylib::unload_image(sprite_data.image);
-        };
+    foreach(&sprite_data : common::sprite_data_list) {
+        sprite_data.texture = raylib::load_texture_from_image(sprite_data.image);
+        raylib::unload_image(sprite_data.image);
     }
 }
 
@@ -247,7 +225,7 @@ fn void main() {
     defer raylib::unload_render_texture(game_texture);
 
     {
-        total_sprites_to_load = common::number_of_sprite_data();
+        total_sprites_to_load = common::sprite_data_list.len();
 
         Thread loading_thread;
 
@@ -295,8 +273,8 @@ fn void main() {
             raylib::begin_texture_mode(game_texture);
                 raylib::clear_background({0x18, 0x18, 0x18, 255});
 
-                if(common::current_background != -1) {
-                    Texture2D background_texture = common::backgrounds[common::current_background].texture;
+                if(common::current_background != common::INVALID_BACKGROUND) {
+                    Texture2D background_texture = common::sprite_data_list[common::current_background].texture;
                     raylib::draw_texture_pro(
                         background_texture,
                         { 0, 0, background_texture.width, background_texture.height },
@@ -309,7 +287,7 @@ fn void main() {
 
                 foreach(Character character : common::characters) {
                     if(character.visible) {
-                        Texture2D sprite_texture = character.emotion_sprite_table[character.current_emotion]!!.texture;
+                        Texture2D sprite_texture = common::sprite_data_list[character.emotion_sprite_table[character.current_emotion]!!].texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
 
                         (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());

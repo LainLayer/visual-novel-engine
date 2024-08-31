@@ -126,7 +126,7 @@ struct Action {
 
         AnimationIndex animation; /* ANIMATION      */
 
-        BackgroundIndex background_index; /* SET_BACKGROUND */
+        SpriteDataIndex background_index; /* SET_BACKGROUND */
     }
 }
 
@@ -170,8 +170,8 @@ fn void print_syntax_tree() {
     io::printn("scenario languages:");
 
     common::character_name_table.@each(; char[] name, CharacterIndex index) {
-        common::characters[index].emotion_sprite_table.@each(; char[] emotion, SpriteData sprite_data) {
-            io::printf("%s[%s] -> '%s'\n", name, emotion, sprite_data.filename);
+        common::characters[index].emotion_sprite_table.@each(; char[] emotion, SpriteDataIndex sprite_data_index) {
+            io::printf("%s[%s] -> '%s'\n", name, emotion, common::sprite_data_list[sprite_data_index].filename);
         };
     };
 
@@ -663,7 +663,8 @@ fn void parse_character() {
                 common::character_name_table[character_name] = (uint)(common::characters.len() - 1);
             }
 
-            common::get_character_by_name(character_name).emotion_sprite_table[emotion] = SpriteData { .filename = filename };
+            SpriteDataIndex sprite_date_index = common::push_sprite_data(SpriteData { .filename = filename });
+            common::get_character_by_name(character_name).emotion_sprite_table[emotion] = sprite_date_index;
 
             count++;
         } else {
@@ -679,7 +680,7 @@ fn void parse_background() {
     char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
     expect(TokenType.SEMICOLON);
 
-    common::add_background(background_name, filename);
+    common::background_name_table[background_name] = common::push_sprite_data(SpriteData { .filename = filename });
 }
 
 fn bool has_scene_with_id(char[] id) {

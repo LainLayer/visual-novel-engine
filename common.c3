@@ -17,13 +17,22 @@ struct SpriteData {
     Image     image;
 }
 
+List(<SpriteData>) sprite_data_list;
+
+def SpriteDataIndex = usz;
+
+macro SpriteDataIndex push_sprite_data(SpriteData data) {
+    sprite_data_list.push(data);
+    return sprite_data_list.len() - 1;
+}
+
 struct Character {
     Vector2 position;
     bool    visible;
     char[]  current_emotion;
     char[]  name;
 
-    HashMap(<char[], SpriteData>) emotion_sprite_table;
+    HashMap(<char[], SpriteDataIndex>) emotion_sprite_table;
 }
 
 def CharacterIndex = uint;
@@ -36,29 +45,11 @@ macro Character* get_character_by_name(char[] name) {
 
 AnimationIndex current_animation = 0;
 
-def BackgroundIndex = int;
-List(<SpriteData>) backgrounds;
+const SpriteDataIndex INVALID_BACKGROUND = ~0;
+SpriteDataIndex current_background = INVALID_BACKGROUND;
 
-BackgroundIndex current_background = -1;
-
-HashMap(<char[], BackgroundIndex>) background_name_table;
+HashMap(<char[], SpriteDataIndex>) background_name_table;
 
 macro bool background_exists(char[] name) {
     return background_name_table.has_key(name);
-}
-
-macro void add_background(char[] name, char[] filename) {
-    backgrounds.push(SpriteData { .filename = filename });
-    background_name_table[name] = (int)(backgrounds.len() - 1);
-}
-
-fn uint number_of_sprite_data() {
-    uint result = 0;
-    foreach(character : characters) {
-        result += (uint)character.emotion_sprite_table.len();
-    }
-
-    result += (uint)backgrounds.len();
-
-    return result;
 }

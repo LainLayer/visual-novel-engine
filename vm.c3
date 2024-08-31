@@ -75,8 +75,8 @@ struct Instruction @packed {
 
         /* BACKGROUND */
         struct {
-            BackgroundIndex background_index;
-            BackgroundIndex previous_background_index;
+            SpriteDataIndex background_index;
+            SpriteDataIndex previous_background_index;
         }
 
         /* END_SCENARIO */
