@@ -17,8 +17,8 @@ fn void List.push(&list, Type item) {
 
         list.items = list.arena.realloc(
             list.items,
-            list.capacity * $sizeof(Type.typeid),
-            new_capacity  * $sizeof(Type.typeid)
+            list.capacity * Type.sizeof,
+            new_capacity  * Type.sizeof
         );
 
         list.capacity = new_capacity;
