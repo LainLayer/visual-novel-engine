@@ -143,6 +143,8 @@ fn void step_back(Program* program) {
     Instruction inst = program.history[program.history.len()-1];
     program.history.pop()!!;
 
+    // Instruction inst = program.history.pop()!!;
+
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
     case InstructionType.END_SCENARIO:
@@ -217,7 +219,7 @@ fn void main() {
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
 
-    raylib::set_target_fps(60);
+    raylib::set_target_fps(160);
 
     imgui::raylib_setup(true);
     defer imgui::raylib_shutdown();
@@ -341,7 +343,7 @@ fn void main() {
 
                 if(imgui::begin_tab_item("Characters")) {
 
-                    if(imgui::begin_table("Character table", 4, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+                    if(imgui::begin_table("Character table", 5, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
                         foreach(&character : common::characters) {
                             @pool() {
                                 imgui::table_next_row(0, 0);
@@ -350,13 +352,16 @@ fn void main() {
                                 imgui::text(string::tformat_zstr("%s", character.name));
 
                                 imgui::table_set_column_index(1);
-                                imgui::input_float("x axis", &character.position.x);
+                                imgui::text(string::tformat_zstr("%s", character.position.x));
 
                                 imgui::table_set_column_index(2);
-                                imgui::input_float("y axis", &character.position.y);
+                                imgui::text(string::tformat_zstr("%s", character.position.y));
 
                                 imgui::table_set_column_index(3);
                                 imgui::text(string::tformat_zstr("%s", character.current_emotion));
+
+                                imgui::table_set_column_index(4);
+                                imgui::text(string::tformat_zstr("%s", character.visible));
                             };
                         }
 
