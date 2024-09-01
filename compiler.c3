@@ -29,6 +29,7 @@ enum TokenType : char {
     INTEGER_LITERAL,
     FLOAT_LITERAL,
     BOOLEAN_LITERAL,
+    DIRECTION_LITERAL,
 
     TYPE,
 
@@ -46,6 +47,7 @@ enum TokenType : char {
     KEYWORD_HIDE,
     KEYWORD_MOVE,
     KEYWORD_EMOTE,
+    KEYWORD_FACE,
 
     KEYWORD_SEQUENCE,
     KEYWORD_GROUP,
@@ -85,12 +87,13 @@ struct Token {
     uint      text_length;
 
     union {
-        char[]   string_value;
-        int      integer_value;
-        float    float_value;
-        char[]   identifier_value;
-        bool     boolean_value;
-        TypeType type_value;
+        char[]    string_value;
+        int       integer_value;
+        float     float_value;
+        char[]    identifier_value;
+        bool      boolean_value;
+        TypeType  type_value;
+        Direction direction_value;
     }
 }
 
@@ -102,6 +105,7 @@ enum ActionType : char {
     SET_VISIBILITY,
     MOVE,
     EMOTE,
+    FACE,
 
     SET_BACKGROUND,
 
@@ -118,14 +122,14 @@ struct Action {
         char[] scene_id;    /* GOTO  */
 
         struct {            /* SPAWN */
-            char[]  character_name;
-            char[]  emotion_name; /* EMOTE          */
-            Vector2 position;     /* MOVE           */
-            bool    visibility;   /* SET_VISIBILITY */
+            char[]    character_name;
+            char[]    emotion_name;   /* EMOTE          */
+            Vector2   position;       /* MOVE           */
+            bool      visibility;     /* SET_VISIBILITY */
+            Direction direction;      /* FACE           */
         }
 
-        AnimationIndex animation; /* ANIMATION      */
-
+        AnimationIndex  animation;        /* ANIMATION      */
         SpriteDataIndex background_index; /* SET_BACKGROUND */
     }
 }
@@ -163,51 +167,6 @@ fn bool has_flag(char[] name) @inline {
     }
 
     return false;
-}
-
-fn void print_syntax_tree() {
-    io::printf("scenario title: %s\n", scenario_title);
-    io::printn("scenario languages:");
-
-    common::character_name_table.@each(; char[] name, CharacterIndex index) {
-        common::characters[index].emotion_sprite_table.@each(; char[] emotion, SpriteDataIndex sprite_data_index) {
-            io::printf("%s[%s] -> '%s'\n", name, emotion, common::sprite_data_list[sprite_data_index].filename);
-        };
-    };
-
-    foreach(char[] language : languages) {
-        io::printf(" - %s\n", language);
-    }
-
-    io::printn("flags:");
-    foreach(Flag flag : flags) {
-        io::printf(" - %s - ", flag.name);
-        switch(flag.flag_type) {
-        case TypeType.BOOLEAN:
-            io::printf("%s\n", flag.boolean_value);
-        case TypeType.INTEGER:
-            io::printf("%d\n", flag.integer_value);
-        }
-    }
-
-    io::printn("Scenes:");
-    foreach(Scene scene : scenes) {
-        io::printf(" - %s :: '%s'\n", scene.scene_id, scene.description);
-        foreach(Action action : scene.actions) {
-            io::printf("   + %s: ", action.action_type);
-            switch(action.action_type) {
-            case ActionType.SAY:            io::printf("%s\n", action.text_to_say);
-            case ActionType.GOTO:           io::printf("%s\n", action.scene_id);
-            case ActionType.MOVE:           io::printf("%s\n", action.position);
-            case ActionType.END:            io::printf("end\n");
-            case ActionType.SPAWN:          io::printf("character: %s, emotion: %s, x: %f, y: %f\n", action.character_name, action.emotion_name, action.position.x, action.position.y);
-            case ActionType.SET_VISIBILITY: io::printf("%s\n", action.visibility);
-            case ActionType.EMOTE:          io::printf("%s\n", action.emotion_name);
-            case ActionType.ANIMATION:      io::printf("%s\n", action.animation);
-            case ActionType.SET_BACKGROUND: io::printf("%s\n", action.background_index);
-            }
-        }
-    }
 }
 
 fn bool is_whitespace(char c) @inline { return c == ' ' || c == '\n' || c == '\t'; }
@@ -279,15 +238,18 @@ fn Token parse_identifier() {
     case "hide":       result.token_type = TokenType.KEYWORD_HIDE;
     case "move":       result.token_type = TokenType.KEYWORD_MOVE;
     case "goto":       result.token_type = TokenType.KEYWORD_GOTO;
+    case "face":       result.token_type = TokenType.KEYWORD_FACE;
     case "say":        result.token_type = TokenType.KEYWORD_SAY;
     case "end":        result.token_type = TokenType.KEYWORD_END;
 
     /* Literals */
-    case "true":       result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = true;
-    case "false":      result.token_type = TokenType.BOOLEAN_LITERAL; result.boolean_value    = false;
-    case "bool":       result.token_type = TokenType.TYPE;            result.type_value       = TypeType.BOOLEAN;
-    case "int" :       result.token_type = TokenType.TYPE;            result.type_value       = TypeType.INTEGER;
-    default:           result.token_type = TokenType.IDENTIFIER;      result.identifier_value = text;
+    case "true":       result.token_type = TokenType.BOOLEAN_LITERAL;   result.boolean_value    = true;
+    case "false":      result.token_type = TokenType.BOOLEAN_LITERAL;   result.boolean_value    = false;
+    case "right":      result.token_type = TokenType.DIRECTION_LITERAL; result.direction_value  = Direction.RIGHT;
+    case "left":       result.token_type = TokenType.DIRECTION_LITERAL; result.direction_value  = Direction.LEFT;
+    case "bool":       result.token_type = TokenType.TYPE;              result.type_value       = TypeType.BOOLEAN;
+    case "int" :       result.token_type = TokenType.TYPE;              result.type_value       = TypeType.INTEGER;
+    default:           result.token_type = TokenType.IDENTIFIER;        result.identifier_value = text;
     }
 
     return result;
@@ -527,6 +489,7 @@ fn void parse_scene() {
                 action.emotion_name   = emotion;
                 action.position.x     = expect(TokenType.INTEGER_LITERAL).integer_value;
                 action.position.y     = expect(TokenType.INTEGER_LITERAL).integer_value;
+                action.direction      = expect(TokenType.DIRECTION_LITERAL).direction_value;
             } else {
                 die("Unknown emotion %s emotion for character %s", emotion, name);
             }
@@ -599,6 +562,17 @@ fn void parse_scene() {
             expect(TokenType.SEMICOLON);
 
             action.background_index = common::background_name_table[background_name]!!;
+        case TokenType.KEYWORD_FACE:
+            action.action_type = ActionType.FACE;
+
+            char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!character_exists(character_name)) die("Trying to face non-existent character '%s'", character_name);
+
+            action.character_name = character_name;
+            action.direction      = expect(TokenType.DIRECTION_LITERAL).direction_value;
+
+            expect(TokenType.SEMICOLON);
 
         default:
             die("unimplemented action %s", current_token.token_type);
@@ -638,6 +612,7 @@ fn void parse_flag() {
 
 fn void parse_character() {
 
+    // TODO: Handle redefinition of character
     char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
     int count = 0;
@@ -659,11 +634,21 @@ fn void parse_character() {
             }
 
             if(!character_exists(character_name)) {
-                common::characters.push(Character { .visible = false, .current_emotion = emotion, .name = character_name });
+                common::characters.push(Character {
+                    .visible         = false,
+                    .current_emotion = emotion,
+                    .name            = character_name,
+                    .direction       = common::DEFAULT_DIRECTION,
+                });
                 common::character_name_table[character_name] = (uint)(common::characters.len() - 1);
             }
 
-            SpriteDataIndex sprite_date_index = common::push_sprite_data(SpriteData { .filename = filename });
+            Direction direction = expect(TokenType.DIRECTION_LITERAL).direction_value;
+
+            SpriteDataIndex sprite_date_index = common::push_sprite_data(SpriteData {
+                .filename   = filename,
+                .needs_flip = (direction != common::DEFAULT_DIRECTION),
+            });
             common::get_character_by_name(character_name).emotion_sprite_table[emotion] = sprite_date_index;
 
             count++;
@@ -680,7 +665,7 @@ fn void parse_background() {
     char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
     expect(TokenType.SEMICOLON);
 
-    common::background_name_table[background_name] = common::push_sprite_data(SpriteData { .filename = filename });
+    common::background_name_table[background_name] = common::push_sprite_data(SpriteData { .filename = filename, .needs_flip = false });
 }
 
 fn bool has_scene_with_id(char[] id) {
@@ -732,8 +717,6 @@ fn Program! compile_file(String path) {
         goto_promises.free();
     }
 
-    print_syntax_tree();
-
     Program program;
 
     List(<InstructionIndex>) labels;
@@ -781,6 +764,13 @@ fn Program! compile_file(String path) {
                     .set_emotion_to    = action.emotion_name,
                     .blocking          = false,
                 });
+
+                program.instructions.push({
+                    .instruction_type  = InstructionType.CHARACTER_FACE,
+                    .character_index   = common::character_name_table[action.character_name]!!,
+                    .direction_to_face = action.direction,
+                    .blocking          = false,
+                });
             case SET_VISIBILITY:
                 program.instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
@@ -812,6 +802,13 @@ fn Program! compile_file(String path) {
                 program.instructions.push({
                     .instruction_type  = InstructionType.BACKGROUND,
                     .background_index  = action.background_index,
+                    .blocking          = false,
+                });
+            case FACE:
+                program.instructions.push({
+                    .instruction_type  = InstructionType.CHARACTER_FACE,
+                    .character_index   = common::character_name_table[action.character_name]!!,
+                    .direction_to_face = action.direction,
                     .blocking          = false,
                 });
             }

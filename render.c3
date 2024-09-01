@@ -120,6 +120,11 @@ fn bool step_program(Program* program) {
         common::current_background     = inst.background_index;
 
         program.instruction_pointer += 1;
+    case InstructionType.CHARACTER_FACE:
+        inst.previous_direction = common::characters[inst.character_index].direction;
+        (&common::characters[inst.character_index]).direction = inst.direction_to_face;
+
+        program.instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
         text.text = "END.";
@@ -164,6 +169,7 @@ fn void step_back(Program* program) {
     case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
     case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
     case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
+    case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
     case InstructionType.GOTO_LABEL:               break;
     }
     program.instruction_pointer = inst.previous_instruction_pointer;
@@ -192,9 +198,13 @@ usz loaded_sprites        = 0;
 
 fn void load_single_sprite_data(void* arg) {
     SpriteData* sprite_data = (SpriteData*) arg;
+
     @pool() {
         sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
     };
+
+    if(sprite_data.needs_flip) raylib::image_flip_horizontal(&sprite_data.image);
+
     loaded_sprites++;
 }
 
@@ -301,7 +311,24 @@ fn void main() {
 
                         (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
                         animation::animation_list[common::current_animation].apply();
-                        raylib::draw_texture_ex(sprite_texture, character.position, 0.0, scale, common::WHITE);
+                        raylib::draw_texture_pro(
+                            sprite_texture,
+                            {
+                                0,
+                                0,
+                                (float)(character.direction == common::DEFAULT_DIRECTION ? sprite_texture.width : -sprite_texture.width),
+                                sprite_texture.height
+                            },
+                            {
+                                character.position.x,
+                                character.position.y,
+                                sprite_texture.width  * scale,
+                                sprite_texture.height * scale
+                            },
+                            { 0, 0 },
+                            0.0,
+                            common::WHITE
+                        );
                     }
                 }
 
@@ -343,7 +370,7 @@ fn void main() {
 
                 if(imgui::begin_tab_item("Characters")) {
 
-                    if(imgui::begin_table("Character table", 5, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+                    if(imgui::begin_table("Character table", 6, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
                         foreach(&character : common::characters) {
                             @pool() {
                                 imgui::table_next_row(0, 0);
@@ -352,16 +379,25 @@ fn void main() {
                                 imgui::text(string::tformat_zstr("%s", character.name));
 
                                 imgui::table_set_column_index(1);
-                                imgui::text(string::tformat_zstr("%s", character.position.x));
+                                imgui::text(string::tformat_zstr("%d", (int)character.position.x));
 
                                 imgui::table_set_column_index(2);
-                                imgui::text(string::tformat_zstr("%s", character.position.y));
+                                imgui::text(string::tformat_zstr("%d", (int)character.position.y));
 
                                 imgui::table_set_column_index(3);
                                 imgui::text(string::tformat_zstr("%s", character.current_emotion));
 
                                 imgui::table_set_column_index(4);
                                 imgui::text(string::tformat_zstr("%s", character.visible));
+
+                                imgui::table_set_column_index(5);
+                                imgui::text(string::tformat_zstr("%s", character.direction.value));
+                                if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
+                                    switch(character.direction) {
+                                    case LEFT:  character.direction = RIGHT;
+                                    case RIGHT: character.direction = LEFT;
+                                    }
+                                }
                             };
                         }
 

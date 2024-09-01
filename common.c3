@@ -15,6 +15,7 @@ struct SpriteData {
     char[]    filename;
     Texture2D texture;
     Image     image;
+    bool      needs_flip;
 }
 
 List(<SpriteData>) sprite_data_list;
@@ -26,11 +27,19 @@ macro SpriteDataIndex push_sprite_data(SpriteData data) {
     return sprite_data_list.len() - 1;
 }
 
+enum Direction : char (String value) {
+    LEFT  = "left",
+    RIGHT = "right"
+}
+
+const Direction DEFAULT_DIRECTION = Direction.LEFT;
+
 struct Character {
-    Vector2 position;
-    bool    visible;
-    char[]  current_emotion;
-    char[]  name;
+    Vector2   position;
+    bool      visible;
+    char[]    current_emotion;
+    char[]    name;
+    Direction direction;
 
     HashMap(<char[], SpriteDataIndex>) emotion_sprite_table;
 }

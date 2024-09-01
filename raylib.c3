@@ -209,6 +209,9 @@ extern fn void draw_texture_rec(Texture2D, Rectangle, Vector2, Color) @extern("D
 extern fn void draw_texture_ex(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) @extern("DrawTextureEx");
 extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle dest, Vector2 origin, float rotation, Color tint) @extern("DrawTexturePro");
 
+extern fn void image_flip_vertical(Image* image)   @extern("ImageFlipVertical");
+extern fn void image_flip_horizontal(Image* image) @extern("ImageFlipHorizontal");
+
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
 {
     draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, common::WHITE, common::WHITE);

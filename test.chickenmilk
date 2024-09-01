@@ -3,13 +3,13 @@ header languages "english" "russian";
 
 background warehouse "test_assets/warehouse.png";
 
-character nika "test_assets/illyustraciya_bez_nazvaniya_2.png" normal
-               "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
-               "test_assets/illyustraciya_bez_nazvaniya.png"   shy;
+character nika "test_assets/illyustraciya_bez_nazvaniya_2.png" normal left
+               "test_assets/illyustraciya_bez_nazvaniya_1.png" happy  left
+               "test_assets/illyustraciya_bez_nazvaniya.png"   shy    left;
 
-character nikab "test_assets/illyustraciya_bez_nazvaniya_2.png" normal
-                "test_assets/illyustraciya_bez_nazvaniya_1.png" happy
-                "test_assets/illyustraciya_bez_nazvaniya.png"   shy;
+character nikab "test_assets/illyustraciya_bez_nazvaniya_2.png" normal left
+                "test_assets/illyustraciya_bez_nazvaniya_1.png" happy  left
+                "test_assets/illyustraciya_bez_nazvaniya.png"   shy    left;
 
 flag my_flag      bool false;
 flag other_flag   int  123;
@@ -21,8 +21,8 @@ scene first_scene "My first epic scene" {
 
     background warehouse;
 
-    spawn nika  happy    0 0;
-    spawn nikab normal 800 0;
+    spawn nika  happy    0 0 right;
+    spawn nikab normal 800 0 left;
 
     say "spawning 2 sprites!";
 
@@ -33,6 +33,9 @@ scene first_scene "My first epic scene" {
 
     say "moving them closer";
 
+    face nika  left;
+    face nikab right;
+
     sequence {
         slide nika   200 0  0   0 1;
         slide nikab  600 0  800 0 1;
@@ -41,6 +44,10 @@ scene first_scene "My first epic scene" {
     say "sliding them apart separately!";
 
     hide nikab;
+
+    face nika  right;
+    face nikab left;
+
 
     loop sequence {
         slide nika 0   0   800 0 1;

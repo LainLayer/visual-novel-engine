@@ -18,6 +18,7 @@ enum InstructionType : char {
     CHARACTER_VISIBILITY_SET,
     CHARACTER_POSITION,
     CHARACTER_EMOTE,
+    CHARACTER_FACE,
 
     BACKGROUND,
 
@@ -65,6 +66,12 @@ struct Instruction {
                     char[] set_emotion_to;
                     char[] previous_emotion;
                 }
+
+                /* CHARACTER_FACE */
+                struct {
+                    Direction direction_to_face;
+                    Direction previous_direction;
+                }
             }
         }
 
@@ -105,6 +112,8 @@ fn void Program.print(program) {
             io::printf("position: %s\n", instruction.set_position_to);
         case InstructionType.CHARACTER_EMOTE:
             io::printf("emotion: %s\n", instruction.set_emotion_to);
+        case InstructionType.CHARACTER_FACE:
+            io::printf("direction_to_face: %s\n", instruction.direction_to_face.value);
         case InstructionType.ANIMATE:
             io::printf("animation index: %s\n", instruction.animation_index);
         case InstructionType.BACKGROUND:
