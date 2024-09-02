@@ -48,7 +48,6 @@ scene first_scene "My first epic scene" {
     face nika  right;
     face nikab left;
 
-
     loop sequence {
         slide nika 0   0   800 0 1;
         slide nika 800 0   0   0 1;

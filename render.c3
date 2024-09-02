@@ -144,11 +144,7 @@ fn bool Program.last_instruction_blocking(program) {
 fn void step_back(Program* program) {
     if(program.history.size < 2) return;
 
-    // this is 2 lines because of some bug
-    Instruction inst = program.history[program.history.len()-1];
-    program.history.pop()!!;
-
-    // Instruction inst = program.history.pop()!!;
+    Instruction inst = program.history.pop()!!;
 
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
