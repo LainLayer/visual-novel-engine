@@ -52,6 +52,7 @@ struct Font {
     GlyphInfo *glyphs;
 }
 
+def CVector2 = float[2];
 
 enum KeyboardKey : CInt (CInt value) {
     NULL            = 0,        // Key: NULL, used for no key pressed
@@ -179,7 +180,7 @@ extern fn void  end_drawing()                                    @extern("EndDra
 extern fn void  clear_background(Color)                          @extern("ClearBackground");
 extern fn void  close_window()                                   @extern("CloseWindow");
 extern fn void  draw_text(ZString, CInt, CInt, CInt, Color)      @extern("DrawText");
-extern fn void  draw_line_v(float[<2>], float[<2>], CUInt)       @extern("DrawLineV");
+extern fn void  draw_line_v(CVector2, CVector2, CUInt)           @extern("DrawLineV");
 extern fn void  draw_rectangle_rec(Rectangle, Color)             @extern("DrawRectangleRec");
 extern fn void  draw_rectangle_lines_ex(Rectangle, float, Color) @extern("DrawRectangleLinesEx");
 extern fn CInt  get_screen_width()                               @extern("GetScreenWidth");
@@ -191,7 +192,7 @@ extern fn CInt  measure_text(ZString, CInt)                               @exter
 extern fn CUInt text_length(ZString)                                      @extern("TextLength");
 extern fn CInt  get_codepoint(ZString, CInt*)                             @extern("GetCodepoint");
 extern fn CInt  get_glyph_index(Font, CInt)                               @extern("GetGlyphIndex");
-extern fn void  draw_text_codepoint(Font, CInt, float[<2>], float, Color) @extern("DrawTextCodepoint");
+extern fn void  draw_text_codepoint(Font, CInt, CVector2, float, Color)   @extern("DrawTextCodepoint");
 extern fn Font  get_font_default()                                        @extern("GetFontDefault");
 
 extern fn Texture2D       load_texture_from_image(Image)                         @extern("LoadTextureFromImage");
@@ -203,11 +204,11 @@ extern fn void            unload_render_texture(RenderTexture2D)                
 extern fn void            begin_texture_mode(RenderTexture2D)                    @extern("BeginTextureMode");
 extern fn void            end_texture_mode()                                     @extern("EndTextureMode");
 
-extern fn void draw_texture(Texture2D, CInt, CInt, Color)             @extern("DrawTexture");
-extern fn void draw_texture_v(Texture2D, Vector2, Color)              @extern("DrawTextureV");
-extern fn void draw_texture_rec(Texture2D, Rectangle, Vector2, Color) @extern("DrawTextureRec");
-extern fn void draw_texture_ex(Texture2D texture, Vector2 position, float rotation, float scale, Color tint) @extern("DrawTextureEx");
-extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle dest, Vector2 origin, float rotation, Color tint) @extern("DrawTexturePro");
+extern fn void draw_texture(Texture2D, CInt, CInt, Color)              @extern("DrawTexture");
+extern fn void draw_texture_v(Texture2D, CVector2, Color)              @extern("DrawTextureV");
+extern fn void draw_texture_rec(Texture2D, Rectangle, CVector2, Color) @extern("DrawTextureRec");
+extern fn void draw_texture_ex(Texture2D texture, CVector2 position, float rotation, float scale, Color tint)                     @extern("DrawTextureEx");
+extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle dest, CVector2 origin, float rotation, Color tint) @extern("DrawTexturePro");
 
 extern fn void image_flip_vertical(Image* image)   @extern("ImageFlipVertical");
 extern fn void image_flip_horizontal(Image* image) @extern("ImageFlipHorizontal");
