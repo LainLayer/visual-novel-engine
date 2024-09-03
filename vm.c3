@@ -98,6 +98,93 @@ List(<Instruction>) instructions;
 List(<Instruction>) instruction_history;
 
 fn bool last_instruction_blocking() {
-    if(vm::instruction_history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
-    return vm::instruction_history[vm::instruction_history.size - 1].blocking;
+    if(instruction_history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
+    return instruction_history[instruction_history.size - 1].blocking;
+}
+
+fn bool step() {
+    Instruction inst = instructions[(usz)instruction_pointer];
+    InstructionIndex old_instruction_pointer = instruction_pointer;
+
+    bool no_push = false;
+
+    switch(inst.instruction_type) {
+    case InstructionType.SHOW_TEXT:
+        inst.previously_shown_text = common::text.text;
+        common::text.text = inst.text_to_show;
+        common::text.step = 0;
+        instruction_pointer += 1;
+    case InstructionType.GOTO_LABEL:
+        instruction_pointer = inst.label_to_go_to;
+    case InstructionType.CHARACTER_VISIBILITY_SET:
+        inst.previous_visibility = common::characters[inst.character_index].visible;
+        (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
+
+        instruction_pointer += 1;
+    case InstructionType.CHARACTER_POSITION:
+        inst.previous_position = common::characters[inst.character_index].position;
+        (&common::characters[inst.character_index]).position = inst.set_position_to;
+
+        instruction_pointer += 1;
+    case InstructionType.CHARACTER_EMOTE:
+        inst.previous_emotion = common::characters[inst.character_index].current_emotion;
+        (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
+
+        instruction_pointer += 1;
+    case InstructionType.ANIMATE:
+        inst.previous_animation_index = common::current_animation;
+        common::current_animation     = inst.animation_index;
+
+        (&animation::animation_list[inst.animation_index]).reset();
+
+        instruction_pointer += 1;
+    case InstructionType.BACKGROUND:
+        inst.previous_background_index = common::current_background;
+        common::current_background     = inst.background_index;
+
+        instruction_pointer += 1;
+    case InstructionType.CHARACTER_FACE:
+        inst.previous_direction = common::characters[inst.character_index].direction;
+        (&common::characters[inst.character_index]).direction = inst.direction_to_face;
+
+        instruction_pointer += 1;
+    case InstructionType.END_SCENARIO:
+        inst.previously_shown_text = common::text.text;
+        common::text.text = "END.";
+        common::text.step = 0;
+        no_push = (instruction_history[^1].instruction_type == InstructionType.END_SCENARIO);
+    }
+    inst.previous_instruction_pointer = old_instruction_pointer;
+    if(!no_push) instruction_history.push(inst);
+    return inst.blocking;
+}
+
+fn void step_back() {
+    if(instruction_history.size < 2) return;
+
+    Instruction inst = instruction_history.pop()!!;
+
+    switch(inst.instruction_type) {
+    case InstructionType.SHOW_TEXT:
+    case InstructionType.END_SCENARIO:
+        common::text.text = inst.previously_shown_text;
+
+    case InstructionType.ANIMATE:
+        (&animation::animation_list[inst.animation_index]).reset();
+        animation::animation_list[inst.animation_index].apply();
+
+        common::current_animation = inst.previous_animation_index;
+
+        (&animation::animation_list[common::current_animation]).reset();
+
+    case InstructionType.BACKGROUND:
+        common::current_background = inst.previous_background_index;
+
+    case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
+    case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
+    case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
+    case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
+    case InstructionType.GOTO_LABEL:               break;
+    }
+    instruction_pointer = inst.previous_instruction_pointer;
 }

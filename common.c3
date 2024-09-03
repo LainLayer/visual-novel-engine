@@ -11,6 +11,15 @@ def Vector2 = float[<2>];
 const Color WHITE = { 255, 255, 255, 255 };
 const Color RED   = { 255,   0,   0, 255 };
 
+macro Rectangle Rectangle.shrink(rectangle, float n) {
+    return {
+        .x      = rectangle.x + n,
+        .y      = rectangle.y + n,
+        .width  = rectangle.width  - n*2,
+        .height = rectangle.height - n*2,
+    };
+}
+
 struct SpriteData {
     char[]    filename;
     Texture2D texture;
@@ -62,3 +71,22 @@ HashMap(<char[], SpriteDataIndex>) background_name_table;
 macro bool background_exists(char[] name) {
     return background_name_table.has_key(name);
 }
+
+const usz MAX_TEXT_SIZE = 1024;
+char[MAX_TEXT_SIZE] message_box_buffer;
+
+const float FONT_SIZE    = 18.0;
+const float TEXT_PADDING = 10.0;
+const float LINE_SPACING =  5.0;
+
+struct TextAnimation {
+    float duration;
+    float step;
+    char[] text;
+}
+
+TextAnimation text = {
+    .duration = 0.35,
+    .step     = 0.0,
+    .text     = ""
+};

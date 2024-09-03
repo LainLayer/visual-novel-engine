@@ -12,18 +12,6 @@ import animation;
 import raylib;
 import imgui;
 
-struct TextAnimation {
-    float duration;
-    float step;
-    char[] text;
-}
-
-TextAnimation text = {
-    .duration = 0.35,
-    .step     = 0.0,
-    .text     = ""
-};
-
 RenderTexture2D game_texture;
 Rectangle       game_rectangle;
 
@@ -37,133 +25,30 @@ const Rectangle TEXTBOX_RECTANGLE = {
     .height = GAME_HEIGHT / 4.0 - 10
 };
 
-const usz MAX_TEXT_SIZE = 1024;
-char[MAX_TEXT_SIZE] message_box_buffer;
-
-const float FONT_SIZE    = 18.0;
-const float TEXT_PADDING = 10.0;
-const float LINE_SPACING =  5.0;
-
-macro Rectangle Rectangle.shrink(rectangle, float n) {
-    return {
-        .x      = rectangle.x + n,
-        .y      = rectangle.y + n,
-        .width  = rectangle.width  - n*2,
-        .height = rectangle.height - n*2,
-    };
-}
-
 fn void TextAnimation.render(&animation) {
     if(animation.step >= animation.duration) {
-        io::bprintf(&message_box_buffer, "%s\0", animation.text);
+        io::bprintf(&common::message_box_buffer, "%s\0", animation.text);
     } else {
         animation.step     += raylib::get_frame_time();
         float percentage    = animation.step / animation.duration;
         uint  chars_to_draw = (uint)math::ceil((float)animation.text.len * percentage);
 
-        if(chars_to_draw < 1)                      return;
-        if(chars_to_draw > animation.text.len - 1) chars_to_draw = animation.text.len - 1;
-        if(chars_to_draw > MAX_TEXT_SIZE - 1)      chars_to_draw = MAX_TEXT_SIZE      - 1;
+        if(chars_to_draw < 1)                         return;
+        if(chars_to_draw > animation.text.len    - 1) chars_to_draw = animation.text.len    - 1;
+        if(chars_to_draw > common::MAX_TEXT_SIZE - 1) chars_to_draw = common::MAX_TEXT_SIZE - 1;
 
-        message_box_buffer[0..chars_to_draw-1] = animation.text[0..chars_to_draw-1];
-        message_box_buffer[chars_to_draw] = '\0';
+        common::message_box_buffer[0..chars_to_draw-1] = animation.text[0..chars_to_draw-1];
+        common::message_box_buffer[chars_to_draw]      = '\0';
     }
     raylib::draw_text_boxed(
         raylib::get_font_default(),
-        (ZString)&message_box_buffer,
-        TEXTBOX_RECTANGLE.shrink(TEXT_PADDING),
-        FONT_SIZE,
-        LINE_SPACING,
+        (ZString)&common::message_box_buffer,
+        TEXTBOX_RECTANGLE.shrink(common::TEXT_PADDING),
+        common::FONT_SIZE,
+        common::LINE_SPACING,
         true,
         common::WHITE
     );
-}
-
-fn bool step_vm() {
-    Instruction inst = vm::instructions[(usz)vm::instruction_pointer];
-    InstructionIndex old_instruction_pointer = vm::instruction_pointer;
-
-    bool no_push = false;
-
-    switch(inst.instruction_type) {
-    case InstructionType.SHOW_TEXT:
-        inst.previously_shown_text = text.text;
-        text.text = inst.text_to_show;
-        text.step = 0;
-        vm::instruction_pointer += 1;
-    case InstructionType.GOTO_LABEL:
-        vm::instruction_pointer = inst.label_to_go_to;
-    case InstructionType.CHARACTER_VISIBILITY_SET:
-        inst.previous_visibility = common::characters[inst.character_index].visible;
-        (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
-
-        vm::instruction_pointer += 1;
-    case InstructionType.CHARACTER_POSITION:
-        inst.previous_position = common::characters[inst.character_index].position;
-        (&common::characters[inst.character_index]).position = inst.set_position_to;
-
-        vm::instruction_pointer += 1;
-    case InstructionType.CHARACTER_EMOTE:
-        inst.previous_emotion = common::characters[inst.character_index].current_emotion;
-        (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
-
-        vm::instruction_pointer += 1;
-    case InstructionType.ANIMATE:
-        inst.previous_animation_index = common::current_animation;
-        common::current_animation     = inst.animation_index;
-
-        (&animation::animation_list[inst.animation_index]).reset();
-
-        vm::instruction_pointer += 1;
-    case InstructionType.BACKGROUND:
-        inst.previous_background_index = common::current_background;
-        common::current_background     = inst.background_index;
-
-        vm::instruction_pointer += 1;
-    case InstructionType.CHARACTER_FACE:
-        inst.previous_direction = common::characters[inst.character_index].direction;
-        (&common::characters[inst.character_index]).direction = inst.direction_to_face;
-
-        vm::instruction_pointer += 1;
-    case InstructionType.END_SCENARIO:
-        inst.previously_shown_text = text.text;
-        text.text = "END.";
-        text.step = 0;
-        no_push = (vm::instruction_history[^1].instruction_type == InstructionType.END_SCENARIO);
-    }
-    inst.previous_instruction_pointer = old_instruction_pointer;
-    if(!no_push) vm::instruction_history.push(inst);
-    return inst.blocking;
-}
-
-fn void step_back() {
-    if(vm::instruction_history.size < 2) return;
-
-    Instruction inst = vm::instruction_history.pop()!!;
-
-    switch(inst.instruction_type) {
-    case InstructionType.SHOW_TEXT:
-    case InstructionType.END_SCENARIO:
-        text.text = inst.previously_shown_text;
-
-    case InstructionType.ANIMATE:
-        (&animation::animation_list[inst.animation_index]).reset();
-        animation::animation_list[inst.animation_index].apply();
-
-        common::current_animation = inst.previous_animation_index;
-
-        (&animation::animation_list[common::current_animation]).reset();
-
-    case InstructionType.BACKGROUND:
-        common::current_background = inst.previous_background_index;
-
-    case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
-    case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
-    case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
-    case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
-    case InstructionType.GOTO_LABEL:               break;
-    }
-    vm::instruction_pointer = inst.previous_instruction_pointer;
 }
 
 fn void handle_window_resize() {
@@ -212,7 +97,7 @@ fn void main() {
 
     compiler::compile_file("test.chickenmilk");
 
-    while(!step_vm());
+    while(!vm::step());
 
     io::printf("\ninstruction size: %d\n", Instruction.sizeof);
     io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
@@ -267,11 +152,11 @@ fn void main() {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
             (&animation::animation_list[common::current_animation]).skip();
-            while(!step_vm());
+            while(!vm::step());
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
             do {
-                step_back();
+                vm::step_back();
             } while(!vm::last_instruction_blocking());
         }
 
@@ -325,7 +210,7 @@ fn void main() {
 
                 raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
                 raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, common::WHITE);
-                text.render();
+                common::text.render();
             raylib::end_texture_mode();
 
             raylib::draw_texture_pro(
