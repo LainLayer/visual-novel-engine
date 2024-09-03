@@ -18,7 +18,6 @@ make
 - [ ] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
 - [ ] Custom build system using wren https://wren.io/
 - [ ] Implement saying text as characters, i.e `bob "Hello!"`.
-- [ ] Implement animation type for flipping the character direction.
 - [ ] Target Platforms (depends on the custom build system)
   + [X] Linux
   + [ ] Windows
@@ -44,6 +43,7 @@ make
 
 ## Done
 
+- [X] Implement animation type for flipping the character direction.
 - [X] Add `pause` animation type
 - [X] Fix stepping through VM.
 - [X] Move the vm stepping code into `vm.c3`.

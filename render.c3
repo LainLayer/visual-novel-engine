@@ -160,6 +160,11 @@ fn void main() {
 
         if(raylib::is_window_resized()) handle_window_resize();
 
+        if(common::animaton_enabled) {
+            (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
+        }
+        // animation::animation_list[common::current_animation].apply();
+
         raylib::begin_drawing();
             raylib::clear_background({0x25, 0x25, 0x25, 255});
 
@@ -183,8 +188,6 @@ fn void main() {
                         Texture2D sprite_texture = common::sprite_data_list[character.emotion_sprite_table[character.current_emotion]!!].texture;
                         float scale = GAME_HEIGHT / (float)sprite_texture.height;
 
-                        (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
-                        animation::animation_list[common::current_animation].apply();
                         raylib::draw_texture_pro(
                             sprite_texture,
                             {
@@ -237,7 +240,21 @@ fn void main() {
                         (&animation::animation_list[common::current_animation]).reset();
                     }
 
-                    animation::animation_list[common::current_animation].imgui_debug_visualize(common::current_animation);
+                    imgui::same_line();
+
+                    @pool() {
+                        if(imgui::button(string::tformat_zstr("%s", common::animaton_enabled ? "Disable animation" : "Enable animation"))) {
+                            common::animaton_enabled = !common::animaton_enabled;
+                        }
+                    };
+
+                    imgui::same_line();
+
+                    if(imgui::button("Tick animation")) {
+                        (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
+                    }
+
+                    (&animation::animation_list[common::current_animation]).imgui_debug_visualize(common::current_animation);
 
                     imgui::end_tab_item();
                 }

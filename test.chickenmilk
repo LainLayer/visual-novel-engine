@@ -49,12 +49,17 @@ scene first_scene "My first epic scene" {
 
     loop sequence {
         slide nika 0   0   800 0 1;
+        turn  nika left;
         pause 1;
+
         slide nika 800 0   0   0 1;
+        turn  nika right;
         pause 1;
     }
 
     say "looping!";
+
+    face nika right;
 
     move nika 0 0;
 

@@ -25,7 +25,7 @@ extern fn bool tree_node(ZString, SomeFlags flags = 1 << 5) @extern("igTreeNodeE
 extern fn void tree_pop()                                   @extern("igTreePop");
 extern fn bool is_item_clicked(CInt mouse_button = 0)       @extern("igIsItemClicked");
 
-extern fn void same_line()                          @extern("igSameLine");
+extern fn void same_line(float a=0.0, float b=3.0)                          @extern("igSameLine");
 extern fn void progress_bar(float, ImVec2, ZString) @extern("igProgressBar");
 
 extern fn bool begin_table(ZString str_id, CInt columns, SomeFlags flags, ImVec2 outer_size, float inner_width) @extern("igBeginTable");

@@ -54,6 +54,7 @@ enum TokenType : char {
     KEYWORD_SLIDE,
     KEYWORD_LOOP,
     KEYWORD_PAUSE,
+    KEYWORD_TURN,
 
     KEYWORD_END,
 
@@ -241,6 +242,7 @@ fn Token parse_identifier() {
     case "move":       result.token_type = TokenType.KEYWORD_MOVE;
     case "goto":       result.token_type = TokenType.KEYWORD_GOTO;
     case "face":       result.token_type = TokenType.KEYWORD_FACE;
+    case "turn":       result.token_type = TokenType.KEYWORD_TURN;
     case "say":        result.token_type = TokenType.KEYWORD_SAY;
     case "end":        result.token_type = TokenType.KEYWORD_END;
 
@@ -404,6 +406,23 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
         animation.character_index = common::character_name_table[character_name]!!;
         animation.slide_to        = slide_to;
         animation.slide_from      = slide_from;
+
+    case TokenType.KEYWORD_TURN:
+        if(recursion_level == 0) die("Turning characters outside of a group or sequence is pointless, use the `face` keyword.");
+
+        char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+        if(!character_exists(character_name)) die("Trying to turn animate non-existent character '%s'", character_name);
+
+        Direction direction = expect(TokenType.DIRECTION_LITERAL).direction_value;
+
+        expect(TokenType.SEMICOLON);
+
+        animation.animation_type  = AnimationType.TURN;
+        animation.step            = 0.0;
+        animation.character_index = common::character_name_table[character_name]!!;
+        animation.turn_to         = direction;
+
     case TokenType.KEYWORD_LOOP:
         if(recursion_level > 0) die("Looping animations are only allowed at the top level");
         bump_lexer();
@@ -427,6 +446,7 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
             animation.push(sub_animation)!!;
             bump_lexer();
         }
+
     case TokenType.KEYWORD_GROUP:
         animation.animation_type = AnimationType.GROUP;
         expect(TokenType.OPEN_BRACKET);
@@ -442,6 +462,7 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
             animation.push(sub_animation)!!;
             bump_lexer();
         }
+
     case TokenType.KEYWORD_PAUSE:
         if(recursion_level == 0) die("Pause animations are not allowed as standalone animations.");
 
@@ -450,6 +471,7 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
         animation.duration        = (float)expect(TokenType.INTEGER_LITERAL).integer_value;
 
         expect(TokenType.SEMICOLON);
+
     default:
         die("Unexpected token %s during animation declaration", current_token.token_type);
     }
@@ -554,6 +576,7 @@ fn void parse_scene() {
         case TokenType.KEYWORD_GROUP:
         case TokenType.KEYWORD_SEQUENCE:
         case TokenType.KEYWORD_PAUSE:
+        case TokenType.KEYWORD_TURN:
             action.action_type = ActionType.ANIMATION;
 
             Animation animation;

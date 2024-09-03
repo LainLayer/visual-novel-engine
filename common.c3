@@ -41,6 +41,8 @@ enum Direction : char (String value) {
     RIGHT = "right"
 }
 
+macro Direction.flip(d) => d == Direction.LEFT ? Direction.RIGHT : Direction.LEFT;
+
 const Direction DEFAULT_DIRECTION = Direction.LEFT;
 
 struct Character {
@@ -60,6 +62,8 @@ HashMap(<char[], CharacterIndex>) character_name_table;
 macro Character* get_character_by_name(char[] name) {
     return &characters[common::character_name_table[name]!!];
 }
+
+bool animaton_enabled = true;
 
 AnimationIndex current_animation = 0;
 

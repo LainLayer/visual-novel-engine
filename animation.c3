@@ -14,6 +14,7 @@ enum AnimationType : char {
 
     SLIDE,
     PAUSE,
+    TURN,
 
     IDLE
 }
@@ -33,13 +34,17 @@ struct Animation {
             float step;
             float duration;
 
+            CharacterIndex character_index;
+
             union {
                 /* SLIDE */
                 struct {
-                    CharacterIndex character_index;
-                    Vector2        slide_to;
-                    Vector2        slide_from;
+                    Vector2 slide_to;
+                    Vector2 slide_from;
                 }
+
+                /* TURN */
+                Direction turn_to;
             }
         }
     }
@@ -81,8 +86,10 @@ fn void Animation.reset(&animation) {
         (&animation_list[animation.animation_to_loop]).reset();
     case SLIDE:
     case PAUSE:
+    case TURN:
         animation.step = 0.0;
     }
+    animation.apply();
 }
 
 fn void Animation.skip(&animation) {
@@ -97,7 +104,10 @@ fn void Animation.skip(&animation) {
     case SLIDE:
     case PAUSE:
         animation.step = animation.duration;
+    case TURN:
+        animation.step = 1.0;
     }
+    animation.apply();
 }
 
 fn bool Animation.is_finished(animation) {
@@ -117,6 +127,8 @@ fn bool Animation.is_finished(animation) {
     case SLIDE:
     case PAUSE:
         return animation.step >= animation.duration;
+    case TURN:
+        return animation.step != 0.0;
     }
 }
 
@@ -148,7 +160,10 @@ fn void Animation.tick(&animation, float delta_time) {
             animation.step += delta_time;
             if(animation.step > animation.duration) animation.step = animation.duration;
         }
+    case TURN:
+        animation.step = 1.0;
     }
+    animation.apply();
 }
 
 fn void Animation.apply(animation) {
@@ -169,14 +184,29 @@ fn void Animation.apply(animation) {
         character.position = animation.slide_from.lerp(animation.slide_to, progress);
     case LOOP:
         animation_list[animation.animation_to_loop].apply();
+    case TURN:
+        Character* character = &common::characters[animation.character_index];
+        if(animation.step == 0.0) {
+            character.direction = animation.turn_to.flip();
+        } else {
+            character.direction = animation.turn_to;
+        }
     case IDLE:  break;
     case PAUSE: break;
     }
 }
 
-fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
+fn void Animation.imgui_debug_visualize(&animation, AnimationIndex list_index) {
     @pool() {
         if(imgui::tree_node(string::tformat_zstr("%s##%s", animation.animation_type, list_index))) {
+
+            if(animation.animation_type != IDLE) {
+                if(imgui::button(string::tformat_zstr("reset##%s", list_index))) animation.reset();
+                imgui::same_line();
+                if(imgui::button(string::tformat_zstr("skip##%s", list_index)))  animation.skip();
+            }
+
+
             switch(animation.animation_type) {
             case SEQUENCE:
             case GROUP:
@@ -184,6 +214,7 @@ fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
             case LOOP:
                 animation_list[animation.animation_to_loop].imgui_debug_visualize(list_index);
             case SLIDE:
+                imgui::same_line();
                 imgui::text(string::tformat_zstr(
                     "slide '%s' from %.2f,%.2f to %.2f,%.2f",
                     common::characters[animation.character_index].name,
@@ -195,8 +226,17 @@ fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
                 imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
             case PAUSE:
                 imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
+            case TURN:
+                imgui::same_line();
+                imgui::text(string::tformat_zstr(
+                    "turn '%s' %s",
+                    common::characters[animation.character_index].name,
+                    animation.turn_to.value
+                ));
+                imgui::progress_bar(animation.step, { 0.0, 0.0 }, null);
             case IDLE: break;
             }
+
             imgui::tree_pop();
         }
     };
