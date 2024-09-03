@@ -11,16 +11,16 @@ struct Rectangle {
 
 struct Texture {
     CUInt id;
-    CInt width;
-    CInt height;
-    CInt mipmaps;
-    CInt format;
+    CInt  width;
+    CInt  height;
+    CInt  mipmaps;
+    CInt  format;
 }
 
 def Texture2D = Texture;
 
 struct RenderTexture {
-    CUInt id;
+    CUInt   id;
     Texture texture;
     Texture depth;
 }
@@ -29,10 +29,10 @@ def RenderTexture2D = RenderTexture;
 
 struct Image {
     void* data;
-    CInt width;
-    CInt height;
-    CInt mipmaps;
-    CInt format;
+    CInt  width;
+    CInt  height;
+    CInt  mipmaps;
+    CInt  format;
 }
 
 struct GlyphInfo {
@@ -44,12 +44,12 @@ struct GlyphInfo {
 }
 
 struct Font {
-    CInt baseSize;
-    CInt glyphCount;
-    CInt glyphPadding;
-    Texture2D texture;
-    Rectangle *recs;
-    GlyphInfo *glyphs;
+    CInt       baseSize;
+    CInt       glyphCount;
+    CInt       glyphPadding;
+    Texture2D  texture;
+    Rectangle* recs;
+    GlyphInfo* glyphs;
 }
 
 def CVector2 = float[2];
@@ -187,34 +187,40 @@ extern fn CInt  get_screen_width()                               @extern("GetScr
 extern fn CInt  get_screen_height()                              @extern("GetScreenHeight");
 extern fn float get_frame_time()                                 @extern("GetFrameTime");
 extern fn bool  is_key_pressed(CInt)                             @extern("IsKeyPressed");
+extern fn CInt  measure_text(ZString, CInt)                      @extern("MeasureText");
+extern fn CUInt text_length(ZString)                             @extern("TextLength");
+extern fn CInt  get_codepoint(ZString, CInt*)                    @extern("GetCodepoint");
+extern fn CInt  get_glyph_index(Font, CInt)                      @extern("GetGlyphIndex");
+extern fn void  draw_text_codepoint(Font,     CInt,
+                                    CVector2, float, Color)      @extern("DrawTextCodepoint");
+extern fn Font      get_font_default()                           @extern("GetFontDefault");
+extern fn Texture2D load_texture_from_image(Image)               @extern("LoadTextureFromImage");
+extern fn Image     load_image(ZString)                          @extern("LoadImage");
+extern fn void      unload_image(Image)                          @extern("UnloadImage");
+extern fn Texture2D load_texture(ZString)                        @extern("LoadTexture");
+extern fn void unload_render_texture(RenderTexture2D)            @extern("UnloadRenderTexture");
+extern fn void begin_texture_mode(RenderTexture2D)               @extern("BeginTextureMode");
+extern fn void end_texture_mode()                                @extern("EndTextureMode");
+extern fn void draw_texture(Texture2D, CInt, CInt, Color)        @extern("DrawTexture");
+extern fn void draw_texture_v(Texture2D, CVector2, Color)        @extern("DrawTextureV");
+extern fn void draw_texture_rec(Texture2D, Rectangle,
+                                CVector2,  Color)                @extern("DrawTextureRec");
+extern fn RenderTexture2D load_render_texture(CInt, CInt)        @extern("LoadRenderTexture");
+extern fn void draw_texture_ex(Texture2D texture,
+                               CVector2  position,
+                               float     rotation,
+                               float     scale,
+                               Color     tint)                   @extern("DrawTextureEx");
+extern fn void draw_texture_pro(Texture2D texture,
+                                Rectangle source,
+                                Rectangle dest,
+                                CVector2  origin,
+                                float     rotation,
+                                Color     tint)                  @extern("DrawTexturePro");
+extern fn void image_flip_vertical(Image* image)                 @extern("ImageFlipVertical");
+extern fn void image_flip_horizontal(Image* image)               @extern("ImageFlipHorizontal");
 
-extern fn CInt  measure_text(ZString, CInt)                               @extern("MeasureText");
-extern fn CUInt text_length(ZString)                                      @extern("TextLength");
-extern fn CInt  get_codepoint(ZString, CInt*)                             @extern("GetCodepoint");
-extern fn CInt  get_glyph_index(Font, CInt)                               @extern("GetGlyphIndex");
-extern fn void  draw_text_codepoint(Font, CInt, CVector2, float, Color)   @extern("DrawTextCodepoint");
-extern fn Font  get_font_default()                                        @extern("GetFontDefault");
-
-extern fn Texture2D       load_texture_from_image(Image)                         @extern("LoadTextureFromImage");
-extern fn Image           load_image(ZString)                                    @extern("LoadImage");
-extern fn void            unload_image(Image)                                    @extern("UnloadImage");
-extern fn Texture2D       load_texture(ZString)                                  @extern("LoadTexture");
-extern fn RenderTexture2D load_render_texture(CInt, CInt)                        @extern("LoadRenderTexture");
-extern fn void            unload_render_texture(RenderTexture2D)                 @extern("UnloadRenderTexture");
-extern fn void            begin_texture_mode(RenderTexture2D)                    @extern("BeginTextureMode");
-extern fn void            end_texture_mode()                                     @extern("EndTextureMode");
-
-extern fn void draw_texture(Texture2D, CInt, CInt, Color)              @extern("DrawTexture");
-extern fn void draw_texture_v(Texture2D, CVector2, Color)              @extern("DrawTextureV");
-extern fn void draw_texture_rec(Texture2D, Rectangle, CVector2, Color) @extern("DrawTextureRec");
-extern fn void draw_texture_ex(Texture2D texture, CVector2 position, float rotation, float scale, Color tint)                     @extern("DrawTextureEx");
-extern fn void draw_texture_pro(Texture2D texture, Rectangle source, Rectangle dest, CVector2 origin, float rotation, Color tint) @extern("DrawTexturePro");
-
-extern fn void image_flip_vertical(Image* image)   @extern("ImageFlipVertical");
-extern fn void image_flip_horizontal(Image* image) @extern("ImageFlipHorizontal");
-
-fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint)
-{
+fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint) {
     draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, common::WHITE, common::WHITE);
 }
 
@@ -223,8 +229,7 @@ enum DrawState {
     DRAW_STATE,
 }
 
-fn void draw_text_boxed_selectable(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint, int selectStart, int selectLength, Color selectTint, Color selectBackTint)
-{
+fn void draw_text_boxed_selectable(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint, int selectStart, int selectLength, Color selectTint, Color selectBackTint) {
     CInt length = text_length(text);
 
     float textOffsetY = 0;
