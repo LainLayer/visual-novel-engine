@@ -92,34 +92,12 @@ struct Instruction {
     }
 }
 
-struct Program {
-    InstructionIndex    instruction_pointer;
-    List(<Instruction>) instructions;
-    List(<Instruction>) history;
-}
 
-fn void Program.print(program) {
-    foreach(Instruction instruction : program.instructions) {
-        io::printf("%s :: ", instruction.instruction_type);
-        switch(instruction.instruction_type) {
-        case InstructionType.SHOW_TEXT:
-            io::printf("%s\n", instruction.text_to_show);
-        case InstructionType.GOTO_LABEL:
-            io::printf("%d\n", (usz)instruction.label_to_go_to);
-        case InstructionType.CHARACTER_VISIBILITY_SET:
-            io::printf("visibility: %s\n", instruction.set_visibility_to);
-        case InstructionType.CHARACTER_POSITION:
-            io::printf("position: %s\n", instruction.set_position_to);
-        case InstructionType.CHARACTER_EMOTE:
-            io::printf("emotion: %s\n", instruction.set_emotion_to);
-        case InstructionType.CHARACTER_FACE:
-            io::printf("direction_to_face: %s\n", instruction.direction_to_face.value);
-        case InstructionType.ANIMATE:
-            io::printf("animation index: %s\n", instruction.animation_index);
-        case InstructionType.BACKGROUND:
-            io::printf("background index: %s\n", instruction.background_index);
-        case InstructionType.END_SCENARIO:
-            break;
-        }
-    }
+InstructionIndex    instruction_pointer;
+List(<Instruction>) instructions;
+List(<Instruction>) instruction_history;
+
+fn bool last_instruction_blocking() {
+    if(vm::instruction_history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
+    return vm::instruction_history[vm::instruction_history.size - 1].blocking;
 }

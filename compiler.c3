@@ -684,10 +684,10 @@ fn usz get_index_of_scene_with_id(char[] id) {
     unreachable();
 }
 
-fn Program! compile_file(String path) {
+fn void compile_file(String path) {
 
     filename = path;
-    load_file(path)!;
+    load_file(path)!!;
 
     for(current_token = next_token(); current_token.token_type != TokenType.EOF; bump_lexer()) {
         switch(current_token.token_type) {
@@ -698,7 +698,7 @@ fn Program! compile_file(String path) {
         case TokenType.KEYWORD_FLAG:       parse_flag();
         case TokenType.KEYWORD_CHARACTER:  parse_character();
         case TokenType.KEYWORD_BACKGROUND: parse_background();
-        default:                          die("unknown token %s", current_token.token_type);
+        default:                           die("unknown token %s", current_token.token_type);
         }
     }
 
@@ -717,95 +717,93 @@ fn Program! compile_file(String path) {
         goto_promises.free();
     }
 
-    Program program;
-
     List(<InstructionIndex>) labels;
     defer labels.free();
 
     foreach(Scene scene : scenes) {
-        labels.push((InstructionIndex)program.instructions.size);
+        labels.push((InstructionIndex)vm::instructions.size);
         foreach(Action action : scene.actions) {
             switch(action.action_type) {
             case SAY:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type = InstructionType.SHOW_TEXT,
                     .text_to_show     = action.text_to_say,
                     .blocking         = true,
                 });
             case GOTO:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type = InstructionType.GOTO_LABEL,
                     .scene_index      = get_index_of_scene_with_id(action.scene_id),
                     .blocking         = false,
                 });
             case END:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type = InstructionType.END_SCENARIO,
                     .blocking         = true,
                 });
             case SPAWN:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_visibility_to = true,
                     .blocking          = false,
                 });
 
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_POSITION,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_position_to   = action.position,
                     .blocking          = false,
                 });
 
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_EMOTE,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_emotion_to    = action.emotion_name,
                     .blocking          = false,
                 });
 
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_FACE,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .direction_to_face = action.direction,
                     .blocking          = false,
                 });
             case SET_VISIBILITY:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_visibility_to = action.visibility,
                     .blocking          = false,
                 });
             case EMOTE:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_EMOTE,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_emotion_to    = action.emotion_name,
                     .blocking          = false,
                 });
             case MOVE:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_POSITION,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .set_position_to   = action.position,
                     .blocking          = false,
                 });
             case ANIMATION:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.ANIMATE,
                     .animation_index   = action.animation,
                     .blocking          = false,
                 });
             case SET_BACKGROUND:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.BACKGROUND,
                     .background_index  = action.background_index,
                     .blocking          = false,
                 });
             case FACE:
-                program.instructions.push({
+                vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_FACE,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .direction_to_face = action.direction,
@@ -815,17 +813,14 @@ fn Program! compile_file(String path) {
         }
     }
 
-    for(usz i = 0; i < program.instructions.size; i++) {
-        if(program.instructions[i].instruction_type == InstructionType.GOTO_LABEL) {
+    for(usz i = 0; i < vm::instructions.size; i++) {
+        if(vm::instructions[i].instruction_type == InstructionType.GOTO_LABEL) {
 
             // @cleanup workaround for https://github.com/c3lang/c3c/issues/1357
             // change to one line when this issue is fixed.
-            Instruction* goto_instruction   = &program.instructions[i];
-            goto_instruction.label_to_go_to = labels[program.instructions[i].scene_index];
+            Instruction* goto_instruction   = &vm::instructions[i];
+            goto_instruction.label_to_go_to = labels[vm::instructions[i].scene_index];
         }
     }
 
-    program.print();
-
-    return program;
 }

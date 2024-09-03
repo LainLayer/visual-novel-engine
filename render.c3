@@ -79,9 +79,9 @@ fn void TextAnimation.render(&animation) {
     );
 }
 
-fn bool step_program(Program* program) {
-    Instruction inst = program.instructions[(usz)program.instruction_pointer];
-    InstructionIndex old_instruction_pointer = program.instruction_pointer;
+fn bool step_vm() {
+    Instruction inst = vm::instructions[(usz)vm::instruction_pointer];
+    InstructionIndex old_instruction_pointer = vm::instruction_pointer;
 
     bool no_push = false;
 
@@ -90,61 +90,56 @@ fn bool step_program(Program* program) {
         inst.previously_shown_text = text.text;
         text.text = inst.text_to_show;
         text.step = 0;
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
-        program.instruction_pointer = inst.label_to_go_to;
+        vm::instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
         inst.previous_visibility = common::characters[inst.character_index].visible;
         (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
         inst.previous_position = common::characters[inst.character_index].position;
         (&common::characters[inst.character_index]).position = inst.set_position_to;
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
         inst.previous_emotion = common::characters[inst.character_index].current_emotion;
         (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.ANIMATE:
         inst.previous_animation_index = common::current_animation;
         common::current_animation     = inst.animation_index;
 
         (&animation::animation_list[inst.animation_index]).reset();
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.BACKGROUND:
         inst.previous_background_index = common::current_background;
         common::current_background     = inst.background_index;
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.CHARACTER_FACE:
         inst.previous_direction = common::characters[inst.character_index].direction;
         (&common::characters[inst.character_index]).direction = inst.direction_to_face;
 
-        program.instruction_pointer += 1;
+        vm::instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = text.text;
         text.text = "END.";
         text.step = 0;
-        no_push = (program.history[program.history.size - 1].instruction_type == InstructionType.END_SCENARIO);
+        no_push = (vm::instruction_history[^1].instruction_type == InstructionType.END_SCENARIO);
     }
     inst.previous_instruction_pointer = old_instruction_pointer;
-    if(!no_push) program.history.push(inst);
+    if(!no_push) vm::instruction_history.push(inst);
     return inst.blocking;
 }
 
-fn bool Program.last_instruction_blocking(program) {
-    if(program.history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
-    return program.history[program.history.size - 1].blocking;
-}
+fn void step_back() {
+    if(vm::instruction_history.size < 2) return;
 
-fn void step_back(Program* program) {
-    if(program.history.size < 2) return;
-
-    Instruction inst = program.history.pop()!!;
+    Instruction inst = vm::instruction_history.pop()!!;
 
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
@@ -168,7 +163,7 @@ fn void step_back(Program* program) {
     case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
     case InstructionType.GOTO_LABEL:               break;
     }
-    program.instruction_pointer = inst.previous_instruction_pointer;
+    vm::instruction_pointer = inst.previous_instruction_pointer;
 }
 
 fn void handle_window_resize() {
@@ -215,9 +210,9 @@ fn void main() {
 
     animation::init_animation_system();
 
-    Program program = compiler::compile_file("test.chickenmilk")!!;
+    compiler::compile_file("test.chickenmilk");
 
-    while(!step_program(&program));
+    while(!step_vm());
 
     io::printf("\ninstruction size: %d\n", Instruction.sizeof);
     io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
@@ -272,12 +267,12 @@ fn void main() {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
             (&animation::animation_list[common::current_animation]).skip();
-            while(!step_program(&program));
+            while(!step_vm());
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
             do {
-                step_back(&program);
-            } while(!program.last_instruction_blocking());
+                step_back();
+            } while(!vm::last_instruction_blocking());
         }
 
         if(raylib::is_window_resized()) handle_window_resize();
