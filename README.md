@@ -4,6 +4,11 @@ This is a smally hobby visual novel I am working on.
 
 ## compiling
 
+NOTE: C3 is an experimental language, this project requires using the latest commit of the c3c compiler.
+This is due to bugs in the compiler being frequent and me using this project partially to find and report them.
+
+You may get the c3c compiler from here: https://github.com/c3lang/c3c
+
 ```sh
 make
 ```
@@ -11,7 +16,6 @@ make
 ## TODO
 
 - [ ] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
-- [ ] Move the vm stepping code into `vm.c3`.
 - [ ] Custom build system using wren https://wren.io/
 - [ ] Implement saying text as characters, i.e `bob "Hello!"`.
 - [ ] Implement animation type for flipping the character direction.
@@ -42,3 +46,4 @@ make
 
 - [X] Add `pause` animation type
 - [X] Fix stepping through VM.
+- [X] Move the vm stepping code into `vm.c3`.
