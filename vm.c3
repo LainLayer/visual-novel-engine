@@ -7,8 +7,9 @@ import std::io;
 import common;
 import raylib;
 import animation;
+import imgui;
 
-distinct InstructionIndex = usz;
+def InstructionIndex = usz;
 
 enum InstructionType : char {
     SHOW_TEXT,
@@ -97,17 +98,10 @@ InstructionIndex    instruction_pointer;
 List(<Instruction>) instructions;
 List(<Instruction>) instruction_history;
 
-fn bool last_instruction_blocking() {
-    if(instruction_history.size < 2) return true; // fix case where starting from non blocking instruction lets you rewind too far
-    return instruction_history[instruction_history.size - 1].blocking;
-}
+fn bool apply_instruction(Instruction inst) {
 
-fn bool step() {
-    Instruction inst = instructions[(usz)instruction_pointer];
     InstructionIndex old_instruction_pointer = instruction_pointer;
-
     bool no_push = false;
-
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
         inst.previously_shown_text = common::text.text;
@@ -156,35 +150,76 @@ fn bool step() {
     }
     inst.previous_instruction_pointer = old_instruction_pointer;
     if(!no_push) instruction_history.push(inst);
+
     return inst.blocking;
 }
 
-fn void step_back() {
-    if(instruction_history.size < 2) return;
+macro void step() {
+    while(!apply_instruction(instructions[instruction_pointer]));
+}
 
-    Instruction inst = instruction_history.pop()!!;
+fn bool can_step_back() {
+    if(instruction_history.len() < 2) return false;
 
-    switch(inst.instruction_type) {
-    case InstructionType.SHOW_TEXT:
-    case InstructionType.END_SCENARIO:
-        common::text.text = inst.previously_shown_text;
-
-    case InstructionType.ANIMATE:
-        (&animation::animation_list[inst.animation_index]).reset();
-        animation::animation_list[inst.animation_index].apply();
-
-        common::current_animation = inst.previous_animation_index;
-
-        (&animation::animation_list[common::current_animation]).reset();
-
-    case InstructionType.BACKGROUND:
-        common::current_background = inst.previous_background_index;
-
-    case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
-    case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
-    case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
-    case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
-    case InstructionType.GOTO_LABEL:               break;
+    for(InstructionIndex i = 0; i < instruction_history.len() - 1; i++) {
+        if(instructions[i].blocking) return true;
     }
-    instruction_pointer = inst.previous_instruction_pointer;
+
+    return false;
+}
+
+fn void step_back() {
+    if(!can_step_back()) return;
+
+    do {
+        Instruction inst = instruction_history.pop()!!;
+
+        switch(inst.instruction_type) {
+        case InstructionType.SHOW_TEXT:
+        case InstructionType.END_SCENARIO:
+            common::text.text = inst.previously_shown_text;
+
+        case InstructionType.ANIMATE:
+            (&animation::animation_list[inst.animation_index]).reset();
+            animation::animation_list[inst.animation_index].apply();
+
+            common::current_animation = inst.previous_animation_index;
+
+            (&animation::animation_list[common::current_animation]).reset();
+
+        case InstructionType.BACKGROUND:
+            common::current_background = inst.previous_background_index;
+
+        case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
+        case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
+        case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
+        case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
+        case InstructionType.GOTO_LABEL:               break;
+        }
+        instruction_pointer = inst.previous_instruction_pointer;
+    } while(!instruction_history[^1].blocking);
+}
+
+fn void debug_tab() {
+    if(imgui::begin_tab_item("Instructions")) {
+        if(imgui::begin_table("Instruction list", 2, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+            for(InstructionIndex i = 0; i < instructions.len(); i++) {
+                @pool() {
+                    imgui::table_next_row(0, 0);
+
+                    imgui::table_set_column_index(0);
+                        imgui::text(string::tformat_zstr("%s", instructions[i].instruction_type));
+
+                    imgui::table_set_column_index(1);
+                        if(i == instruction_pointer) {
+                            imgui::text("<--");
+                        } else {
+                            imgui::text("");
+                        }
+                };
+            }
+            imgui::end_table();
+        }
+        imgui::end_tab_item();
+    }
 }

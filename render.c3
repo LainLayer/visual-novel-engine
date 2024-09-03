@@ -97,7 +97,7 @@ fn void main() {
 
     compiler::compile_file("test.chickenmilk");
 
-    while(!vm::step());
+    vm::step();
 
     io::printf("\ninstruction size: %d\n", Instruction.sizeof);
     io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
@@ -135,8 +135,8 @@ fn void main() {
                     CInt    text_width   = raylib::measure_text(loading_text, 24);
                     raylib::draw_text(
                         loading_text,
-                        raylib::get_screen_width()/2 - text_width/2,
-                        raylib::get_screen_height()/2 - 12,
+                        raylib::get_screen_width()  / 2 - text_width/2,
+                        raylib::get_screen_height() / 2 - 12,
                         24,
                         common::WHITE
                     );
@@ -152,12 +152,10 @@ fn void main() {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
             io::printn("steping forward");
             (&animation::animation_list[common::current_animation]).skip();
-            while(!vm::step());
+            vm::step();
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             io::printn("steping backwards");
-            do {
-                vm::step_back();
-            } while(!vm::last_instruction_blocking());
+            vm::step_back();
         }
 
         if(raylib::is_window_resized()) handle_window_resize();
@@ -281,6 +279,8 @@ fn void main() {
                     }
                     imgui::end_tab_item();
                 }
+
+                vm::debug_tab();
 
                 imgui::end_tab_bar();
             imgui::end();
