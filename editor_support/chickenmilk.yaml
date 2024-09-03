@@ -5,7 +5,7 @@ detect:
 
 rules:
     - statement: "\\b(header|scene|character|flag|say|goto|spawn|show|hide|move|emote|end|background|face)\\b"
-    - special: "\\b(slide|sequence|group|loop)\\b"
+    - special: "\\b(slide|sequence|group|loop|pause)\\b"
     - type: "\\b(bool|int)\\b"
     - symbol.operator: "[+\\-*/%^<>#=!&|,.;:]"
     - symbol.brackets: "[(){}]|\\[|\\]"

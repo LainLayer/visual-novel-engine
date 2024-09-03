@@ -37,8 +37,8 @@ make
 - [ ] Implement more interpolators, and add some form of syntax for them.
 - [ ] Implement player choices (BIG)
 - [ ] Custom menus from inside chickenmilk.
-- [ ] Add `pause` animation type
 
 ## Done
 
+- [X] Add `pause` animation type
 - [X] Fix stepping through VM.

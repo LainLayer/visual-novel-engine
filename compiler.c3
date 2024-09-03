@@ -53,6 +53,7 @@ enum TokenType : char {
     KEYWORD_GROUP,
     KEYWORD_SLIDE,
     KEYWORD_LOOP,
+    KEYWORD_PAUSE,
 
     KEYWORD_END,
 
@@ -232,6 +233,7 @@ fn Token parse_identifier() {
     case "group":      result.token_type = TokenType.KEYWORD_GROUP;
     case "scene":      result.token_type = TokenType.KEYWORD_SCENE;
     case "emote":      result.token_type = TokenType.KEYWORD_EMOTE;
+    case "pause":      result.token_type = TokenType.KEYWORD_PAUSE;
     case "loop":       result.token_type = TokenType.KEYWORD_LOOP;
     case "flag":       result.token_type = TokenType.KEYWORD_FLAG;
     case "show":       result.token_type = TokenType.KEYWORD_SHOW;
@@ -440,7 +442,14 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
             animation.push(sub_animation)!!;
             bump_lexer();
         }
+    case TokenType.KEYWORD_PAUSE:
+        if(recursion_level == 0) die("Pause animations are not allowed as standalone animations.");
 
+        animation.animation_type  = AnimationType.PAUSE;
+        animation.step            = 0.0;
+        animation.duration        = (float)expect(TokenType.INTEGER_LITERAL).integer_value;
+
+        expect(TokenType.SEMICOLON);
     default:
         die("Unexpected token %s during animation declaration", current_token.token_type);
     }
@@ -544,6 +553,7 @@ fn void parse_scene() {
         case TokenType.KEYWORD_LOOP:
         case TokenType.KEYWORD_GROUP:
         case TokenType.KEYWORD_SEQUENCE:
+        case TokenType.KEYWORD_PAUSE:
             action.action_type = ActionType.ANIMATION;
 
             Animation animation;

@@ -13,6 +13,7 @@ enum AnimationType : char {
     LOOP,
 
     SLIDE,
+    PAUSE,
 
     IDLE
 }
@@ -78,7 +79,8 @@ fn void Animation.reset(&animation) {
     case IDLE: break;
     case LOOP:
         (&animation_list[animation.animation_to_loop]).reset();
-    default:
+    case SLIDE:
+    case PAUSE:
         animation.step = 0.0;
     }
 }
@@ -92,7 +94,8 @@ fn void Animation.skip(&animation) {
         }
     case IDLE: break;
     case LOOP: break;
-    default:
+    case SLIDE:
+    case PAUSE:
         animation.step = animation.duration;
     }
 }
@@ -111,7 +114,8 @@ fn bool Animation.is_finished(animation) {
         return true;
     case LOOP:
         return false;
-    default:
+    case SLIDE:
+    case PAUSE:
         return animation.step >= animation.duration;
     }
 }
@@ -138,7 +142,8 @@ fn void Animation.tick(&animation, float delta_time) {
         } else {
             (&animation_list[animation.animation_to_loop]).tick(delta_time);
         }
-    default:
+    case SLIDE:
+    case PAUSE:
         if(!animation.is_finished()) {
             animation.step += delta_time;
             if(animation.step > animation.duration) animation.step = animation.duration;
@@ -164,7 +169,8 @@ fn void Animation.apply(animation) {
         character.position = animation.slide_from.lerp(animation.slide_to, progress);
     case LOOP:
         animation_list[animation.animation_to_loop].apply();
-    case IDLE: break;
+    case IDLE:  break;
+    case PAUSE: break;
     }
 }
 
@@ -186,6 +192,8 @@ fn void Animation.imgui_debug_visualize(animation, AnimationIndex list_index) {
                     animation.slide_to.x,
                     animation.slide_to.y
                 ));
+                imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
+            case PAUSE:
                 imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
             case IDLE: break;
             }
