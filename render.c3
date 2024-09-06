@@ -121,7 +121,7 @@ fn void main() {
     defer raylib::unload_render_texture(game_texture);
 
     {
-        ThreadPool(<32>) sprite_loading_thread_pool;
+        ThreadPool(<16384>) sprite_loading_thread_pool;
 
         total_sprites_to_load = common::sprite_data_list.len();
 
