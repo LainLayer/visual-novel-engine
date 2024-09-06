@@ -154,7 +154,10 @@ fn bool apply_instruction(Instruction inst) {
     return inst.blocking;
 }
 
+bool step_back_failed = false;
+
 macro void step() {
+    step_back_failed = false;
     while(!apply_instruction(instructions[instruction_pointer]));
 }
 
@@ -169,7 +172,12 @@ fn bool can_step_back() {
 }
 
 fn void step_back() {
-    if(!can_step_back()) return;
+    if(!can_step_back()) {
+        step_back_failed = true;
+        return;
+    } else {
+        step_back_failed = false;
+    }
 
     do {
         Instruction inst = instruction_history.pop()!!;
@@ -202,6 +210,18 @@ fn void step_back() {
 
 fn void debug_tab() {
     if(imgui::begin_tab_item("Instructions")) {
+
+        if(imgui::button("Step forward")) step();
+
+        imgui::same_line();
+
+        if(imgui::button("Step backwards")) step_back();
+
+        if(step_back_failed) {
+            imgui::same_line();
+            imgui::text("Cannot step back any further");
+        }
+
         if(imgui::begin_table("Instruction list", 2, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
             for(InstructionIndex i = 0; i < instructions.len(); i++) {
                 @pool() {

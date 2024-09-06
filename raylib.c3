@@ -180,6 +180,25 @@ enum KeyboardKey : CInt (CInt value) {
     VOLUME_DOWN     = 25        // Key: Android volume down button
 }
 
+distinct ConfigFlags = CUInt;
+
+const CUInt FLAG_VSYNC_HINT               = 0x00000040;
+const CUInt FLAG_FULLSCREEN_MODE          = 0x00000002;
+const CUInt FLAG_WINDOW_RESIZABLE         = 0x00000004;
+const CUInt FLAG_WINDOW_UNDECORATED       = 0x00000008;
+const CUInt FLAG_WINDOW_HIDDEN            = 0x00000080;
+const CUInt FLAG_WINDOW_MINIMIZED         = 0x00000200;
+const CUInt FLAG_WINDOW_MAXIMIZED         = 0x00000400;
+const CUInt FLAG_WINDOW_UNFOCUSED         = 0x00000800;
+const CUInt FLAG_WINDOW_TOPMOST           = 0x00001000;
+const CUInt FLAG_WINDOW_ALWAYS_RUN        = 0x00000100;
+const CUInt FLAG_WINDOW_TRANSPARENT       = 0x00000010;
+const CUInt FLAG_WINDOW_HIGHDPI           = 0x00002000;
+const CUInt FLAG_WINDOW_MOUSE_PASSTHROUGH = 0x00004000;
+const CUInt FLAG_BORDERLESS_WINDOWED_MODE = 0x00008000;
+const CUInt FLAG_MSAA_4X_HINT             = 0x00000020;
+const CUInt FLAG_INTERLACED_HINT          = 0x00010000;
+
 extern fn void  init_window(CInt, CInt, ZString)                 @extern("InitWindow");
 extern fn bool  is_window_resized()                              @extern("IsWindowResized");
 extern fn void  set_target_fps(CInt)                             @extern("SetTargetFPS");
@@ -228,6 +247,8 @@ extern fn void draw_texture_pro(Texture2D texture,
                                 Color     tint)                  @extern("DrawTexturePro");
 extern fn void image_flip_vertical(Image* image)                 @extern("ImageFlipVertical");
 extern fn void image_flip_horizontal(Image* image)               @extern("ImageFlipHorizontal");
+extern fn void set_config_flags(ConfigFlags flags)               @extern("SetConfigFlags");
+extern fn CInt get_fps()                                         @extern("GetFPS");
 
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint) {
     draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, common::WHITE, common::WHITE);

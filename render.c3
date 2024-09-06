@@ -107,10 +107,16 @@ fn void main() {
 
     log::set_raylib_tracelog_callback();
 
+    raylib::set_config_flags(
+        raylib::FLAG_WINDOW_HIGHDPI   |
+        raylib::FLAG_MSAA_4X_HINT     |
+        raylib::FLAG_VSYNC_HINT
+    );
+
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
 
-    raylib::set_target_fps(160);
+    // raylib::set_target_fps(160);
 
     imgui::raylib_setup(true);
     defer imgui::raylib_shutdown();
@@ -228,6 +234,10 @@ fn void main() {
 
             imgui::raylib_begin();
             imgui::begin("debug system");
+                @pool() {
+                    imgui::text(string::tformat_zstr("FPS: %s", raylib::get_fps()));
+                };
+
                 imgui::begin_tab_bar("debug tab bar");
 
                 if(imgui::begin_tab_item("Animation")) {
@@ -288,10 +298,7 @@ fn void main() {
                                 imgui::text(string::tformat_zstr("%s", character.direction.value));
                                 imgui::same_line();
                                 if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
-                                    switch(character.direction) {
-                                    case LEFT:  character.direction = RIGHT;
-                                    case RIGHT: character.direction = LEFT;
-                                    }
+                                    character.direction = character.direction.flip();
                                 }
                             };
                         }
