@@ -40,3 +40,12 @@ extern fn bool input_float(ZString   label             ,
                            float     step_fast = 10.0f ,
                            ZString   format    = "%.2f",
                            SomeFlags flags     = 0     )     @extern("igInputFloat");
+extern fn bool input_text_multiline(ZString   label,
+                                    ZString   buf,
+                                    usz       buf_size,
+                                    ImVec2    size,
+                                    SomeFlags flags,
+                                    void* callback  = null,
+                                    void* user_data = null)  @extern("igInputTextMultiline");
+extern fn void begin_disabled(bool disabled = true)          @extern("igBeginDisabled");
+extern fn void end_disabled()                                @extern("igEndDisabled");

@@ -165,6 +165,12 @@ fn void main() {
             vm::step();
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             vm::step_back();
+        } else if(raylib::is_key_pressed(KeyboardKey.F2.value)) {
+            log::info("This is a logging test!");
+            log::debug("This is a logging test!");
+            log::warn("This is a logging test!");
+            log::error("This is a logging test!");
+            log::ok("This is a logging test!");
         }
 
         if(raylib::is_window_resized()) handle_window_resize();
@@ -172,7 +178,6 @@ fn void main() {
         if(common::animaton_enabled) {
             (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
         }
-        // animation::animation_list[common::current_animation].apply();
 
         raylib::begin_drawing();
             raylib::clear_background({0x25, 0x25, 0x25, 255});
@@ -309,6 +314,8 @@ fn void main() {
                 }
 
                 vm::debug_tab();
+
+                log::debug_tab();
 
                 imgui::end_tab_bar();
             imgui::end();

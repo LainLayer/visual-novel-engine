@@ -29,11 +29,6 @@ make
 - [ ] Save Game state.
 - [ ] Playing music and sound effects, fade audio in and out.
 - [ ] Load custom fonts from chickenmilk.
-- [ ] Logging module.
-  + [ ] Handles multithreading.
-  + [ ] Cross-platform terminal colors.
-  + [ ] Log into both terminal STDOUT and into the debug system in a text box.
-- [ ] Refactor multi-threaded asset loading to not use `ThreadPool` but instead just create and detach a bunch of threads to avoid blocking in the case where there are more than 32 assets.
 - [ ] Add `block` keyword that will block without doing anything.
 - [ ] Refactor text displaying system to duplicate strings from the file and store them separetely, then free the file contents.
 - [ ] Refactor big imgui chunk of code into its own module and put it behind a keybind
@@ -43,6 +38,12 @@ make
 
 ## Done
 
+- [X] Logging module.
+  + [X] Handles multithreading.
+  + [X] Cross-platform terminal colors. (Fuck windows you dont get colors, get a better terminal)
+  + [X] Log into both terminal STDOUT and into the debug system in a text box.
+- [X] Refactor multi-threaded asset loading to not use `ThreadPool` but instead just create and detach a bunch of threads to avoid blocking in the case where there are more than 32 assets.
+  + Instead just increased threadpool cap to ridiculous amount, stack memory is cheap.
 - [X] Implement animation type for flipping the character direction.
 - [X] Add `pause` animation type
 - [X] Fix stepping through VM.
