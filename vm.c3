@@ -155,9 +155,11 @@ fn bool apply_instruction(Instruction inst) {
 }
 
 bool step_back_failed = false;
+bool need_to_scroll_instruction_table = false;
 
 macro void step() {
     step_back_failed = false;
+    need_to_scroll_instruction_table = true;
     while(!apply_instruction(instructions[instruction_pointer]));
 }
 
@@ -178,6 +180,8 @@ fn void step_back() {
     } else {
         step_back_failed = false;
     }
+
+    need_to_scroll_instruction_table = true;
 
     do {
         Instruction inst = instruction_history.pop()!!;
@@ -222,20 +226,35 @@ fn void debug_tab() {
             imgui::text("Cannot step back any further");
         }
 
-        if(imgui::begin_table("Instruction list", 2, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+        if(imgui::begin_table("Instruction list", 3, imgui::TABLE_ROWBG | imgui::TABLE_BORDERS | imgui::TABLE_SCROLLY | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
+
+            imgui::table_setup_column("IP");
+            imgui::table_setup_column("Index");
+            imgui::table_setup_column("Instruction Type");
+
+            imgui::table_headers_row();
+
             for(InstructionIndex i = 0; i < instructions.len(); i++) {
                 @pool() {
                     imgui::table_next_row(0, 0);
 
                     imgui::table_set_column_index(0);
-                        imgui::text(string::tformat_zstr("%s", instructions[i].instruction_type));
-
-                    imgui::table_set_column_index(1);
                         if(i == instruction_pointer) {
-                            imgui::text("<--");
+                            imgui::text("-->");
+                            if(need_to_scroll_instruction_table) {
+                                imgui::set_scroll_here_y(1.0);
+                                need_to_scroll_instruction_table = false;
+                            }
                         } else {
                             imgui::text("");
                         }
+
+                    imgui::table_set_column_index(1);
+                        imgui::text(string::tformat_zstr("%d", i));
+
+                    imgui::table_set_column_index(2);
+                        imgui::text(string::tformat_zstr("%s", instructions[i].instruction_type));
+
                 };
             }
             imgui::end_table();

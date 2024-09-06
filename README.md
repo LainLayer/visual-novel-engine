@@ -35,6 +35,8 @@ make
 - [ ] Implement more interpolators, and add some form of syntax for them.
 - [ ] Implement player choices (BIG)
 - [ ] Custom menus from inside chickenmilk.
+- [ ] Command to turn textbox on and off
+- [ ] Overlay over the game and ability to animate it
 
 ## Done
 
