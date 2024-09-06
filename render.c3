@@ -8,6 +8,7 @@ import compiler;
 import vm;
 import common;
 import animation;
+import log;
 
 import raylib;
 import imgui;
@@ -81,6 +82,7 @@ fn void load_single_sprite_data(void* arg) {
 
     if(sprite_data.needs_flip) raylib::image_flip_horizontal(&sprite_data.image);
 
+    // log::info("Successfully loaded image %s", sprite_data.filename);
     loaded_sprites++;
 }
 
@@ -94,6 +96,7 @@ fn void assets_to_textures() {
 fn void main() {
 
     animation::init_animation_system();
+    log::init();
 
     compiler::compile_file("test.chickenmilk");
 
@@ -101,6 +104,8 @@ fn void main() {
 
     io::printf("\ninstruction size: %d\n", Instruction.sizeof);
     io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
+
+    log::set_raylib_tracelog_callback();
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
@@ -150,11 +155,9 @@ fn void main() {
 
     while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
-            io::printn("steping forward");
             (&animation::animation_list[common::current_animation]).skip();
             vm::step();
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
-            io::printn("steping backwards");
             vm::step_back();
         }
 
@@ -283,6 +286,7 @@ fn void main() {
 
                                 imgui::table_set_column_index(5);
                                 imgui::text(string::tformat_zstr("%s", character.direction.value));
+                                imgui::same_line();
                                 if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
                                     switch(character.direction) {
                                     case LEFT:  character.direction = RIGHT;

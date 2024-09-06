@@ -2,6 +2,15 @@ module raylib;
 
 import common;
 
+const CInt LOG_ALL     = 0;
+const CInt LOG_TRACE   = 1;
+const CInt LOG_DEBUG   = 2;
+const CInt LOG_INFO    = 3;
+const CInt LOG_WARNING = 4;
+const CInt LOG_ERROR   = 5;
+const CInt LOG_FATAL   = 6;
+const CInt LOG_NONE    = 7;
+
 struct Rectangle {
     float x;
     float y;

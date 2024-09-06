@@ -11,12 +11,18 @@ IMGUI_FLAGS=-DPLATFORM_DRM -DCIMGUI_USE_GLFW -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=
 
 raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o
 
-c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3
+c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3 log.c3
 
 all: render
 
-render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a
-	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z -lstdc++
+render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/logc.a
+	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -l $(BUILD)/logc.a -z -lstdc++
+
+$(BUILD)/logc.o: logc.c
+	$(CC) -c $(CFLAGS) logc.c -o $(BUILD)/logc.o
+
+$(BUILD)/logc.a: $(BUILD)/logc.o
+	ar rcs $(BUILD)/logc.a $(BUILD)/logc.o
 
 # == raylib == #
 $(BUILD)/libraylib.a: $(raylib_objects)
