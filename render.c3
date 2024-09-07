@@ -70,8 +70,8 @@ fn void handle_window_resize() {
     };
 }
 
-usz total_sprites_to_load = 0;
-usz loaded_sprites        = 0;
+usz total_assets_to_load = 0;
+usz loaded_assets        = 0;
 
 fn void load_single_sprite_data(void* arg) {
     SpriteData* sprite_data = (SpriteData*) arg;
@@ -83,7 +83,17 @@ fn void load_single_sprite_data(void* arg) {
     if(sprite_data.needs_flip) raylib::image_flip_horizontal(&sprite_data.image);
 
     // log::info("Successfully loaded image %s", sprite_data.filename);
-    loaded_sprites++;
+    loaded_assets++;
+}
+
+fn void load_single_music_data(void* arg) {
+    MusicData* music_data = (MusicData*) arg;
+
+    @pool() {
+        music_data.music = raylib::load_music_stream(string::tformat_zstr("%s", music_data.filename));
+    };
+
+    loaded_assets++;
 }
 
 fn void assets_to_textures() {
@@ -100,23 +110,21 @@ fn void main() {
 
     compiler::compile_file("test.chickenmilk");
 
-    vm::step();
-
     io::printf("\ninstruction size: %d\n", Instruction.sizeof);
     io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
 
     log::set_raylib_tracelog_callback();
 
     raylib::set_config_flags(
-        raylib::FLAG_WINDOW_HIGHDPI   |
-        raylib::FLAG_MSAA_4X_HINT     |
+        raylib::FLAG_WINDOW_HIGHDPI |
+        raylib::FLAG_MSAA_4X_HINT   |
         raylib::FLAG_VSYNC_HINT
     );
 
     raylib::init_window(1920, 1080, "Visual Novel Renderer");
     defer raylib::close_window();
 
-    // raylib::set_target_fps(160);
+    raylib::init_audio_device();
 
     imgui::raylib_setup(true);
     defer imgui::raylib_shutdown();
@@ -127,22 +135,26 @@ fn void main() {
     defer raylib::unload_render_texture(game_texture);
 
     {
-        ThreadPool(<16384>) sprite_loading_thread_pool;
+        ThreadPool(<16384>) thread_pool;
 
-        total_sprites_to_load = common::sprite_data_list.len();
+        total_assets_to_load = common::sprite_data_list.len() + common::music_data_list.len();
 
-        sprite_loading_thread_pool.init()!!;
-        defer sprite_loading_thread_pool.destroy()!!;
+        thread_pool.init()!!;
+        defer thread_pool.destroy()!!;
 
         foreach(&sprite_data : common::sprite_data_list) {
-            sprite_loading_thread_pool.push((ThreadFn) &load_single_sprite_data, sprite_data)!!;
+            thread_pool.push((ThreadFn) &load_single_sprite_data, sprite_data)!!;
         }
 
-        while(!raylib::window_should_close() && !(loaded_sprites == total_sprites_to_load)) {
+        foreach(&music_data : common::music_data_list) {
+            thread_pool.push((ThreadFn) &load_single_music_data, music_data)!!;
+        }
+
+        while(!raylib::window_should_close() && !(loaded_assets == total_assets_to_load)) {
             raylib::begin_drawing();
                 raylib::clear_background({0x25, 0x25, 0x25, 255});
                 @pool() {
-                    ZString loading_text = string::tformat_zstr("loading %d/%d sprites...",loaded_sprites, total_sprites_to_load);
+                    ZString loading_text = string::tformat_zstr("loading %d/%d assets...",loaded_assets, total_assets_to_load);
                     CInt    text_width   = raylib::measure_text(loading_text, 24);
                     raylib::draw_text(
                         loading_text,
@@ -158,6 +170,7 @@ fn void main() {
         assets_to_textures(); // OpenGL is shit! It crashes if you try loading textures in a separate thread.
     }
 
+    vm::step();
 
     while(!raylib::window_should_close()) {
         if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
@@ -171,6 +184,15 @@ fn void main() {
             log::warn("This is a logging test!");
             log::error("This is a logging test!");
             log::ok("This is a logging test!");
+        } else if(raylib::is_key_pressed(KeyboardKey.F3.value)) {
+            log::info("Playing music!");
+            common::current_music = 0;
+            Music m = common::music_data_list[0].music;
+            raylib::play_music_stream(m);
+        }
+
+        if(common::current_music != common::NO_MUSIC) {
+            raylib::update_music_stream(common::music_data_list[common::current_music].music);
         }
 
         if(raylib::is_window_resized()) handle_window_resize();
@@ -279,7 +301,18 @@ fn void main() {
 
                 if(imgui::begin_tab_item("Characters")) {
 
-                    if(imgui::begin_table("Character table", 6, (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10), { 0, 0 }, 0)) {
+                    if(imgui::begin_table("Character table", 7, imgui::TABLE_BORDERS | imgui::TABLE_ROWBG | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
+
+                        imgui::table_setup_column("Name");
+                        imgui::table_setup_column("X");
+                        imgui::table_setup_column("Y");
+                        imgui::table_setup_column("Emotion");
+                        imgui::table_setup_column("Visible");
+                        imgui::table_setup_column("Direction");
+                        imgui::table_setup_column("Controls");
+
+                        imgui::table_headers_row();
+
                         foreach(&character : common::characters) {
                             @pool() {
                                 imgui::table_next_row(0, 0);
@@ -301,7 +334,8 @@ fn void main() {
 
                                 imgui::table_set_column_index(5);
                                 imgui::text(string::tformat_zstr("%s", character.direction.value));
-                                imgui::same_line();
+
+                                imgui::table_set_column_index(6);
                                 if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
                                     character.direction = character.direction.flip();
                                 }
@@ -312,6 +346,25 @@ fn void main() {
                     }
                     imgui::end_tab_item();
                 }
+
+                if(imgui::begin_tab_item("Music")) {
+
+                    if(common::current_music == common::NO_MUSIC) {
+                        imgui::text("No Music");
+                    } else {
+                        @pool() {
+                            imgui::text(string::tformat_zstr(
+                                "Music index: %s - %s",
+                                common::current_music,
+                                common::music_data_list[common::current_music].name
+                            ));
+                        };
+                    }
+
+
+                    imgui::end_tab_item();
+                }
+
 
                 vm::debug_tab();
 

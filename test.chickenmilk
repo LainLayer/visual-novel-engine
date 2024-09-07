@@ -3,6 +3,8 @@ header languages "english" "russian";
 
 background warehouse "test_assets/warehouse.png";
 
+music town "test_assets/TownTheme.mp3";
+
 character nika "test_assets/illyustraciya_bez_nazvaniya_2.png" normal left
                "test_assets/illyustraciya_bez_nazvaniya_1.png" happy  left
                "test_assets/illyustraciya_bez_nazvaniya.png"   shy    left;
@@ -23,6 +25,8 @@ scene first_scene "My first epic scene" {
     spawn nika  happy    0 0 right;
     spawn nikab normal 800 0 left;
 
+    play_music town;
+
     say "spawning 2 sprites!";
 
     group {
@@ -39,6 +43,8 @@ scene first_scene "My first epic scene" {
         slide nika   200 0  0   0 1;
         slide nikab  600 0  800 0 1;
     }
+
+    stop_music town;
 
     say "sliding them apart separately!";
 

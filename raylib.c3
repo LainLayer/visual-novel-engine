@@ -63,6 +63,22 @@ struct Font {
 
 def CVector2 = float[2];
 
+struct AudioStream {
+    void* buffer;
+    void* processor;
+    CUInt sampleRate;
+    CUInt sampleSize;
+    CUInt channels;
+}
+
+struct Music {
+    AudioStream stream;
+    CUInt       frameCount;
+    bool        looping;
+    CInt        ctxType;
+    void*       ctxData;
+}
+
 enum KeyboardKey : CInt (CInt value) {
     NULL            = 0,        // Key: NULL, used for no key pressed
     // Alphanumeric keys
@@ -249,6 +265,15 @@ extern fn void image_flip_vertical(Image* image)                 @extern("ImageF
 extern fn void image_flip_horizontal(Image* image)               @extern("ImageFlipHorizontal");
 extern fn void set_config_flags(ConfigFlags flags)               @extern("SetConfigFlags");
 extern fn CInt get_fps()                                         @extern("GetFPS");
+extern fn void init_audio_device()                               @extern("InitAudioDevice");
+extern fn void set_master_volume(float volume)                   @extern("SetMasterVolume");
+extern fn Music load_music_stream(ZString fileName)              @extern("LoadMusicStream");
+extern fn void play_music_stream(Music music)                    @extern("PlayMusicStream");
+extern fn void stop_music_stream(Music music)                    @extern("StopMusicStream");
+extern fn void pause_music_stream(Music music)                   @extern("PauseMusicStream");
+extern fn void resume_music_stream(Music music)                  @extern("ResumeMusicStream");
+extern fn void set_music_volume(Music music, float volume)       @extern("SetMusicVolume");
+extern fn void update_music_stream(Music music)                  @extern("UpdateMusicStream");
 
 fn void draw_text_boxed(Font font, ZString text, Rectangle rec, float fontSize, float spacing, bool wordWrap, Color tint) {
     draw_text_boxed_selectable(font, text, rec, fontSize, spacing, wordWrap, tint, 0, 0, common::WHITE, common::WHITE);

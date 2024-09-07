@@ -43,10 +43,11 @@ fn void log_core(LogLevel label, String format, args...) {
     $else
     io::print(label.plain);
     $endif
+
     io::printfn(format, ...args);
-    @pool() {
-        storage.appendfn("%s%s", label.plain, string::tformat(format, args));
-    };
+
+    storage.append(label.plain);
+    storage.appendfn(format, ...args);
 }
 
 macro void debug(String format, args...) => log_core(LogLevel.DEBUG, format, ...args);
@@ -60,7 +61,7 @@ fn void raylib_log(CInt level, char* text) @extern("raylib_log") @export {
         case raylib::LOG_DEBUG:   debug("%s", (ZString)text);
         case raylib::LOG_INFO:    info("%s",  (ZString)text);
         case raylib::LOG_WARNING: warn("%s",  (ZString)text);
-        case raylib::LOG_ERROR:   error("%s", (ZString)text);
+        default:                  error("%s", (ZString)text);
     }
 }
 

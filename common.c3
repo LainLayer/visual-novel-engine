@@ -36,6 +36,41 @@ macro SpriteDataIndex push_sprite_data(SpriteData data) {
     return sprite_data_list.len() - 1;
 }
 
+
+struct MusicData {
+    Music  music;
+    char[] name;
+    char[] filename;
+}
+
+List(<MusicData>) music_data_list;
+
+def MusicDataIndex = usz;
+
+const MusicDataIndex NO_MUSIC = ~0;
+
+MusicDataIndex current_music = NO_MUSIC;
+
+fn bool music_exists(char[] name) {
+    foreach(MusicData music_data : music_data_list) {
+        if(music_data.name == name) return true;
+    }
+
+    return false;
+}
+
+fault SomeFaultIGuess {
+    MUSIC_NOT_FOUND,
+}
+
+fn MusicDataIndex! get_music_index_by_name(char[] name) {
+    for(MusicDataIndex i = 0; i < music_data_list.len(); i++) {
+        if(music_data_list[i].name == name) return i;
+    }
+
+    return SomeFaultIGuess.MUSIC_NOT_FOUND?;
+}
+
 enum Direction : char (String value) {
     LEFT  = "left",
     RIGHT = "right"

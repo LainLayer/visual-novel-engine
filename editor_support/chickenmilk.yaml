@@ -4,7 +4,7 @@ detect:
     filename: "\\.chickenmilk$"
 
 rules:
-    - statement: "\\b(header|scene|character|flag|say|goto|spawn|show|hide|move|emote|end|background|face)\\b"
+    - statement: "\\b(header|scene|character|flag|say|goto|spawn|show|hide|move|emote|end|background|face|music|play_music|stop_music)\\b"
     - special: "\\b(slide|sequence|group|loop|pause|turn)\\b"
     - type: "\\b(bool|int)\\b"
     - symbol.operator: "[+\\-*/%^<>#=!&|,.;:]"

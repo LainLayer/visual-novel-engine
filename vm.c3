@@ -8,6 +8,7 @@ import common;
 import raylib;
 import animation;
 import imgui;
+import log;
 
 def InstructionIndex = usz;
 
@@ -24,6 +25,9 @@ enum InstructionType : char {
     BACKGROUND,
 
     ANIMATE,
+
+    PLAY_MUSIC,
+    STOP_MUSIC,
 }
 
 struct Instruction {
@@ -88,6 +92,12 @@ struct Instruction {
             SpriteDataIndex previous_background_index;
         }
 
+        /* PLAY_MUSIC, STOP_MUSIC */
+        struct {
+            MusicDataIndex music_index;
+            MusicDataIndex previous_music_index;
+        }
+
         /* END_SCENARIO */
         // nothing needed
     }
@@ -140,6 +150,29 @@ fn bool apply_instruction(Instruction inst) {
     case InstructionType.CHARACTER_FACE:
         inst.previous_direction = common::characters[inst.character_index].direction;
         (&common::characters[inst.character_index]).direction = inst.direction_to_face;
+
+        instruction_pointer += 1;
+    case InstructionType.PLAY_MUSIC:
+        log::debug("Playing music track %s", inst.music_index);
+        inst.previous_music_index = common::current_music;
+        if(common::current_music != common::NO_MUSIC) {
+            log::debug("Stopping previous music track - %s", common::current_music);
+            raylib::stop_music_stream(common::music_data_list[common::current_music].music);
+        } else {
+            log::debug("No previous music track to stop");
+        }
+
+        common::current_music = inst.music_index;
+        raylib::play_music_stream(common::music_data_list[common::current_music].music);
+
+        instruction_pointer += 1;
+    case InstructionType.STOP_MUSIC:
+        inst.previous_music_index = common::current_music;
+        if(common::current_music != common::NO_MUSIC) {
+            raylib::stop_music_stream(common::music_data_list[common::current_music].music);
+        }
+
+        common::current_music = common::NO_MUSIC;
 
         instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
@@ -201,6 +234,24 @@ fn void step_back() {
 
         case InstructionType.BACKGROUND:
             common::current_background = inst.previous_background_index;
+
+        case InstructionType.PLAY_MUSIC:
+            if(common::current_music != common::NO_MUSIC) {
+                raylib::stop_music_stream(common::music_data_list[common::current_music].music);
+            }
+
+            common::current_music = inst.previous_music_index;
+
+            if(common::current_music != common::NO_MUSIC) {
+                raylib::play_music_stream(common::music_data_list[common::current_music].music);
+            }
+
+        case InstructionType.STOP_MUSIC:
+            common::current_music = inst.previous_music_index;
+
+            if(common::current_music != common::NO_MUSIC) {
+                raylib::play_music_stream(common::music_data_list[common::current_music].music);
+            }
 
         case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
         case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;

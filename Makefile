@@ -9,7 +9,7 @@ RAYLIB_FLAGS=-I./raylib/src -I./raylib/src/external/glfw/include -DPLATFORM_DESK
 
 IMGUI_FLAGS=-DPLATFORM_DRM -DCIMGUI_USE_GLFW -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1 -I./cimgui/ -I./rlImGui/ -I./cimgui/imgui/ $(CFLAGS)
 
-raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o
+raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o $(BUILD)/raudio.o
 
 c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3 log.c3
 
@@ -45,6 +45,9 @@ $(BUILD)/rtextures.o: raylib/src/rtextures.c
 
 $(BUILD)/utils.o: raylib/src/utils.c
 	$(CC) -c $(RAYLIB_FLAGS) raylib/src/utils.c -o $(BUILD)/utils.o
+
+$(BUILD)/raudio.o: raylib/src/raudio.c
+	$(CC) -c $(RAYLIB_FLAGS) raylib/src/raudio.c -o $(BUILD)/raudio.o
 # == raylib == #
 
 

@@ -56,6 +56,10 @@ enum TokenType : char {
     KEYWORD_PAUSE,
     KEYWORD_TURN,
 
+    KEYWORD_MUSIC,
+    KEYWORD_PLAY_MUSIC,
+    KEYWORD_STOP_MUSIC,
+
     KEYWORD_END,
 
     EOF
@@ -113,6 +117,9 @@ enum ActionType : char {
 
     ANIMATION,
 
+    PLAY_MUSIC,
+    STOP_MUSIC,
+
     END,
 }
 
@@ -131,8 +138,9 @@ struct Action {
             Direction direction;      /* FACE           */
         }
 
-        AnimationIndex  animation;        /* ANIMATION      */
-        SpriteDataIndex background_index; /* SET_BACKGROUND */
+        AnimationIndex  animation;        /* ANIMATION              */
+        SpriteDataIndex background_index; /* SET_BACKGROUND         */
+        MusicDataIndex  music_index;      /* PLAY_MUSIC, STOP_MUSIC */
     }
 }
 
@@ -235,6 +243,7 @@ fn Token parse_identifier() {
     case "scene":      result.token_type = TokenType.KEYWORD_SCENE;
     case "emote":      result.token_type = TokenType.KEYWORD_EMOTE;
     case "pause":      result.token_type = TokenType.KEYWORD_PAUSE;
+    case "music":      result.token_type = TokenType.KEYWORD_MUSIC;
     case "loop":       result.token_type = TokenType.KEYWORD_LOOP;
     case "flag":       result.token_type = TokenType.KEYWORD_FLAG;
     case "show":       result.token_type = TokenType.KEYWORD_SHOW;
@@ -245,6 +254,10 @@ fn Token parse_identifier() {
     case "turn":       result.token_type = TokenType.KEYWORD_TURN;
     case "say":        result.token_type = TokenType.KEYWORD_SAY;
     case "end":        result.token_type = TokenType.KEYWORD_END;
+
+    /* Music Controls*/
+    case "play_music": result.token_type = TokenType.KEYWORD_PLAY_MUSIC;
+    case "stop_music": result.token_type = TokenType.KEYWORD_STOP_MUSIC;
 
     /* Literals */
     case "true":       result.token_type = TokenType.BOOLEAN_LITERAL;   result.boolean_value    = true;
@@ -606,6 +619,30 @@ fn void parse_scene() {
             action.direction      = expect(TokenType.DIRECTION_LITERAL).direction_value;
 
             expect(TokenType.SEMICOLON);
+        case TokenType.KEYWORD_PLAY_MUSIC:
+            action.action_type = ActionType.PLAY_MUSIC;
+
+            char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            action.music_index = {|
+                if(try maybe_index = common::get_music_index_by_name(music_name)) return maybe_index;
+
+                die("Trying to play non-existent music track '%s'", music_name);
+            |};
+
+            expect(TokenType.SEMICOLON);
+        case TokenType.KEYWORD_STOP_MUSIC:
+            action.action_type = ActionType.STOP_MUSIC;
+
+            char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            action.music_index = {|
+                if(try maybe_index = common::get_music_index_by_name(music_name)) return maybe_index;
+
+                die("Trying to stop non-existent music track '%s'", music_name);
+            |};
+
+            expect(TokenType.SEMICOLON);
 
         default:
             die("unimplemented action %s", current_token.token_type);
@@ -701,6 +738,20 @@ fn void parse_background() {
     common::background_name_table[background_name] = common::push_sprite_data(SpriteData { .filename = filename, .needs_flip = false });
 }
 
+fn void parse_music() {
+    char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+    if(common::music_exists(music_name)) die("Redefinition of existing music named '%s'", music_name);
+
+    char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
+    expect(TokenType.SEMICOLON);
+
+    common::music_data_list.push(MusicData {
+        .name     = music_name,
+        .filename = filename,
+    });
+}
+
 fn bool has_scene_with_id(char[] id) {
     foreach(Scene scene : scenes) {
         if(scene.scene_id == id) return true;
@@ -731,6 +782,7 @@ fn void compile_file(String path) {
         case TokenType.KEYWORD_FLAG:       parse_flag();
         case TokenType.KEYWORD_CHARACTER:  parse_character();
         case TokenType.KEYWORD_BACKGROUND: parse_background();
+        case TokenType.KEYWORD_MUSIC:      parse_music();
         default:                           die("unknown token %s", current_token.token_type);
         }
     }
@@ -840,6 +892,18 @@ fn void compile_file(String path) {
                     .instruction_type  = InstructionType.CHARACTER_FACE,
                     .character_index   = common::character_name_table[action.character_name]!!,
                     .direction_to_face = action.direction,
+                    .blocking          = false,
+                });
+            case PLAY_MUSIC:
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.PLAY_MUSIC,
+                    .music_index       = action.music_index,
+                    .blocking          = false,
+                });
+            case STOP_MUSIC:
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.STOP_MUSIC,
+                    .music_index       = action.music_index,
                     .blocking          = false,
                 });
             }

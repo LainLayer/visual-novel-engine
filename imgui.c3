@@ -96,4 +96,4 @@ extern fn void table_headers_row()                           @extern("igTableHea
 extern fn void table_setup_column(ZString   label,
                                   SomeFlags flags = 0,
                                   float     init_width_or_weight = 0,
-                                  CInt   user_id = 0)     @extern("igTableSetupColumn");
+                                  CInt   user_id = 0)        @extern("igTableSetupColumn");
