@@ -15,14 +15,11 @@ c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3 log.c3
 
 all: render
 
-render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/logc.a
-	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -l $(BUILD)/logc.a -z -lstdc++
+render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/logc.o
+	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z $(BUILD)/logc.o -z -lstdc++
 
 $(BUILD)/logc.o: logc.c
 	$(CC) -c $(CFLAGS) logc.c -o $(BUILD)/logc.o
-
-$(BUILD)/logc.a: $(BUILD)/logc.o
-	ar rcs $(BUILD)/logc.a $(BUILD)/logc.o
 
 # == raylib == #
 $(BUILD)/libraylib.a: $(raylib_objects)
@@ -79,6 +76,16 @@ $(BUILD)/imgui_impl_opengl3.o: cimgui/imgui/backends/imgui_impl_opengl3.cpp
 $(BUILD)/rlImGui.o: rlImGui/rlImGui.cpp
 	$(CXX) $(IMGUI_FLAGS) -c rlImGui/rlImGui.cpp -o $(BUILD)/rlImGui.o
 
-$(BUILD)/libimgui.a: $(BUILD)/imgui_widgets.o $(BUILD)/imgui_tables.o $(BUILD)/imgui_draw.o $(BUILD)/imgui_demo.o $(BUILD)/imgui.o $(BUILD)/cimgui.o $(BUILD)/rlImGui.o $(BUILD)/imgui_impl_glfw.o $(BUILD)/imgui_impl_opengl3.o
-	ar rcs $(BUILD)/libimgui.a $(BUILD)/imgui_widgets.o $(BUILD)/imgui_tables.o $(BUILD)/imgui_draw.o $(BUILD)/imgui_demo.o $(BUILD)/imgui.o $(BUILD)/cimgui.o $(BUILD)/rlImGui.o $(BUILD)/imgui_impl_glfw.o $(BUILD)/imgui_impl_opengl3.o
+imgui_files := $(BUILD)/imgui_widgets.o   \
+               $(BUILD)/imgui_tables.o    \
+               $(BUILD)/imgui_draw.o      \
+               $(BUILD)/imgui_demo.o      \
+               $(BUILD)/imgui.o           \
+               $(BUILD)/cimgui.o          \
+               $(BUILD)/rlImGui.o         \
+               $(BUILD)/imgui_impl_glfw.o \
+               $(BUILD)/imgui_impl_opengl3.o
+
+$(BUILD)/libimgui.a: $(imgui_files)
+	ar rcs $(BUILD)/libimgui.a $(imgui_files)
 # == ImGui == #
