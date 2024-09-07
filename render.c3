@@ -178,17 +178,6 @@ fn void main() {
             vm::step();
         } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
             vm::step_back();
-        } else if(raylib::is_key_pressed(KeyboardKey.F2.value)) {
-            log::info("This is a logging test!");
-            log::debug("This is a logging test!");
-            log::warn("This is a logging test!");
-            log::error("This is a logging test!");
-            log::ok("This is a logging test!");
-        } else if(raylib::is_key_pressed(KeyboardKey.F3.value)) {
-            log::info("Playing music!");
-            common::current_music = 0;
-            Music m = common::music_data_list[0].music;
-            raylib::play_music_stream(m);
         }
 
         if(common::current_music != common::NO_MUSIC) {
