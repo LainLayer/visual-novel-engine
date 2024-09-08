@@ -16,11 +16,11 @@ c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3 log.c3
 
 all: render
 
-render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/logc.o
-	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z $(BUILD)/logc.o
+render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/workarounds.o
+	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z $(BUILD)/workarounds.o
 
-$(BUILD)/logc.o: logc.c
-	$(CC) -c $(CFLAGS) logc.c -o $(BUILD)/logc.o
+$(BUILD)/workarounds.o: workarounds.c
+	$(CC) -c $(CFLAGS) workarounds.c -o $(BUILD)/workarounds.o
 
 # == raylib == #
 $(BUILD)/libraylib.a: $(raylib_objects)

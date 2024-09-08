@@ -19,6 +19,8 @@ Rectangle       game_rectangle;
 const float GAME_WIDTH  = 1280;
 const float GAME_HEIGHT = 720;
 
+char[4096] scratch_buffer;
+
 const Rectangle TEXTBOX_RECTANGLE = {
     .x      = 10,
     .y      = GAME_HEIGHT * 0.75,
@@ -103,6 +105,137 @@ fn void assets_to_textures() {
     }
 }
 
+fn void debug_system() {
+    imgui::raylib_begin();
+    imgui::begin("debug system");
+
+
+    @pool() {
+        imgui::text(string::tformat_zstr("FPS: %s", raylib::get_fps()));
+    };
+
+    imgui::begin_tab_bar("debug tab bar");
+
+    if(imgui::begin_tab_item("Animation")) {
+        @pool() {
+            imgui::text(string::tformat_zstr(
+                "Current animation index: %d, type: %s\0",
+                common::current_animation,
+                animation::animation_list[common::current_animation].animation_type
+            ));
+        };
+
+        if(imgui::button("Reset animation")) {
+            (&animation::animation_list[common::current_animation]).reset();
+        }
+
+        imgui::same_line();
+
+        @pool() {
+            if(imgui::button(string::tformat_zstr("%s", common::animaton_enabled ? "Disable animation" : "Enable animation"))) {
+                common::animaton_enabled = !common::animaton_enabled;
+            }
+        };
+
+        imgui::same_line();
+
+        if(imgui::button("Tick animation")) {
+            (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
+        }
+
+        (&animation::animation_list[common::current_animation]).imgui_debug_visualize(common::current_animation);
+
+        imgui::end_tab_item();
+    }
+
+    if(imgui::begin_tab_item("Characters")) {
+
+        if(imgui::begin_table("Character table", 7, imgui::TABLE_BORDERS | imgui::TABLE_ROWBG | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
+
+            imgui::table_setup_column("Name");
+            imgui::table_setup_column("X");
+            imgui::table_setup_column("Y");
+            imgui::table_setup_column("Emotion");
+            imgui::table_setup_column("Visible");
+            imgui::table_setup_column("Direction");
+            imgui::table_setup_column("Controls");
+
+            imgui::table_headers_row();
+
+            foreach(&character : common::characters) {
+                @pool() {
+                    imgui::table_next_row(0, 0);
+
+                    imgui::table_set_column_index(0);
+                    imgui::text(string::tformat_zstr("%s", character.name));
+
+                    imgui::table_set_column_index(1);
+                    imgui::text(string::tformat_zstr("%d", (int)character.position.x));
+
+                    imgui::table_set_column_index(2);
+                    imgui::text(string::tformat_zstr("%d", (int)character.position.y));
+
+                    imgui::table_set_column_index(3);
+                    imgui::text(string::tformat_zstr("%s", character.current_emotion));
+
+                    imgui::table_set_column_index(4);
+                    imgui::text(string::tformat_zstr("%s", character.visible));
+
+                    imgui::table_set_column_index(5);
+                    imgui::text(string::tformat_zstr("%s", character.direction.value));
+
+                    imgui::table_set_column_index(6);
+                    if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
+                        character.direction = character.direction.flip();
+                    }
+                };
+            }
+
+            imgui::end_table();
+        }
+        imgui::end_tab_item();
+    }
+
+    if(imgui::begin_tab_item("Music")) {
+
+        if(common::current_music == common::NO_MUSIC) {
+            imgui::text("No Music");
+        } else {
+            @pool() {
+                imgui::text(string::tformat_zstr(
+                    "Music index: %s - %s",
+                    common::current_music,
+                    common::music_data_list[common::current_music].name
+                ));
+            };
+        }
+
+
+        imgui::end_tab_item();
+    }
+
+
+    vm::debug_tab();
+
+    log::debug_tab();
+
+    if(imgui::begin_tab_item("Sandbox")) {
+        imgui::input_text_multiline(
+            "##scratch_area",
+            (ZString)&scratch_buffer,
+            scratch_buffer.len,
+            {0,0},
+            0
+        );
+        imgui::end_tab_item();
+    }
+
+    imgui::end_tab_bar();
+
+
+    imgui::end();
+}
+
 fn void main() {
 
     animation::init_animation_system();
@@ -173,11 +306,17 @@ fn void main() {
     vm::step();
 
     while(!raylib::window_should_close()) {
-        if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
-            (&animation::animation_list[common::current_animation]).skip();
-            vm::step();
-        } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
-            vm::step_back();
+        debug_system();
+
+        ImGuiWantsSomething imgui_wants = imgui::get_imgui_wants(imgui::get_io());
+
+        if(!imgui_wants.want_capture_keyboard) {
+            if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
+                (&animation::animation_list[common::current_animation]).skip();
+                vm::step();
+            } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
+                vm::step_back();
+            }
         }
 
         if(common::current_music != common::NO_MUSIC) {
@@ -248,119 +387,6 @@ fn void main() {
                 common::WHITE
             );
 
-            imgui::raylib_begin();
-            imgui::begin("debug system");
-                @pool() {
-                    imgui::text(string::tformat_zstr("FPS: %s", raylib::get_fps()));
-                };
-
-                imgui::begin_tab_bar("debug tab bar");
-
-                if(imgui::begin_tab_item("Animation")) {
-                    @pool() {
-                        imgui::text(string::tformat_zstr(
-                            "Current animation index: %d, type: %s\0",
-                            common::current_animation,
-                            animation::animation_list[common::current_animation].animation_type
-                        ));
-                    };
-
-                    if(imgui::button("Reset animation")) {
-                        (&animation::animation_list[common::current_animation]).reset();
-                    }
-
-                    imgui::same_line();
-
-                    @pool() {
-                        if(imgui::button(string::tformat_zstr("%s", common::animaton_enabled ? "Disable animation" : "Enable animation"))) {
-                            common::animaton_enabled = !common::animaton_enabled;
-                        }
-                    };
-
-                    imgui::same_line();
-
-                    if(imgui::button("Tick animation")) {
-                        (&animation::animation_list[common::current_animation]).tick(raylib::get_frame_time());
-                    }
-
-                    (&animation::animation_list[common::current_animation]).imgui_debug_visualize(common::current_animation);
-
-                    imgui::end_tab_item();
-                }
-
-                if(imgui::begin_tab_item("Characters")) {
-
-                    if(imgui::begin_table("Character table", 7, imgui::TABLE_BORDERS | imgui::TABLE_ROWBG | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
-
-                        imgui::table_setup_column("Name");
-                        imgui::table_setup_column("X");
-                        imgui::table_setup_column("Y");
-                        imgui::table_setup_column("Emotion");
-                        imgui::table_setup_column("Visible");
-                        imgui::table_setup_column("Direction");
-                        imgui::table_setup_column("Controls");
-
-                        imgui::table_headers_row();
-
-                        foreach(&character : common::characters) {
-                            @pool() {
-                                imgui::table_next_row(0, 0);
-
-                                imgui::table_set_column_index(0);
-                                imgui::text(string::tformat_zstr("%s", character.name));
-
-                                imgui::table_set_column_index(1);
-                                imgui::text(string::tformat_zstr("%d", (int)character.position.x));
-
-                                imgui::table_set_column_index(2);
-                                imgui::text(string::tformat_zstr("%d", (int)character.position.y));
-
-                                imgui::table_set_column_index(3);
-                                imgui::text(string::tformat_zstr("%s", character.current_emotion));
-
-                                imgui::table_set_column_index(4);
-                                imgui::text(string::tformat_zstr("%s", character.visible));
-
-                                imgui::table_set_column_index(5);
-                                imgui::text(string::tformat_zstr("%s", character.direction.value));
-
-                                imgui::table_set_column_index(6);
-                                if(imgui::button(string::tformat_zstr("flip##%s", character.name))) {
-                                    character.direction = character.direction.flip();
-                                }
-                            };
-                        }
-
-                        imgui::end_table();
-                    }
-                    imgui::end_tab_item();
-                }
-
-                if(imgui::begin_tab_item("Music")) {
-
-                    if(common::current_music == common::NO_MUSIC) {
-                        imgui::text("No Music");
-                    } else {
-                        @pool() {
-                            imgui::text(string::tformat_zstr(
-                                "Music index: %s - %s",
-                                common::current_music,
-                                common::music_data_list[common::current_music].name
-                            ));
-                        };
-                    }
-
-
-                    imgui::end_tab_item();
-                }
-
-
-                vm::debug_tab();
-
-                log::debug_tab();
-
-                imgui::end_tab_bar();
-            imgui::end();
             imgui::raylib_end();
         raylib::end_drawing();
     }

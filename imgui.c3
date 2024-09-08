@@ -42,6 +42,13 @@ const ImGuiTableFlags TABLE_SORTMULTI                  = 1 << 26;  // Hold shift
 const ImGuiTableFlags TABLE_SORTTRISTATE               = 1 << 27;  // Allow no sorting, disable default sorting. TableGetSortSpecs() may return specs where (SpecsCount == 0).
 const ImGuiTableFlags TABLE_HIGHLIGHTHOVEREDCOLUMN     = 1 << 28;  // Highlight column headers when hovered (may evolve into a fuller highlight)
 
+struct ImGuiWantsSomething {
+    bool want_capture_mouse;
+    bool want_capture_keyboard;
+    bool want_text_input;
+    bool want_set_mousePos;
+}
+
 extern fn void raylib_setup(bool)                            @extern("rlImGuiSetup");
 extern fn void raylib_shutdown()                             @extern("rlImGuiShutdown");
 extern fn void raylib_begin()                                @extern("rlImGuiBegin");
@@ -97,3 +104,5 @@ extern fn void table_setup_column(ZString   label,
                                   SomeFlags flags = 0,
                                   float     init_width_or_weight = 0,
                                   CInt   user_id = 0)        @extern("igTableSetupColumn");
+extern fn ImGuiWantsSomething get_imgui_wants(void* io)      @extern("get_imgui_wants");
+extern fn void* get_io()                                     @extern("igGetIO");
