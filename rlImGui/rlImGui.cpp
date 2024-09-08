@@ -35,7 +35,6 @@
 #include "rlgl.h"
 
 #include <math.h>
-#include <map>
 #include <limits>
 #include <cstdint>
 
@@ -43,12 +42,17 @@
 #include "extras/FA6FreeSolidFontData.h"
 #endif
 
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+
 static ImGuiMouseCursor CurrentMouseCursor = ImGuiMouseCursor_COUNT;
 static MouseCursor MouseCursorMap[ImGuiMouseCursor_COUNT];
 
 ImGuiContext* GlobalContext = nullptr;
 
-static std::map<KeyboardKey, ImGuiKey> RaylibKeyMap;
+typedef struct { KeyboardKey key; ImGuiKey value; } KeyboardPair;
+
+static KeyboardPair *RaylibKeyMap = nullptr;
 
 static bool LastFrameFocused = false;
 
@@ -313,115 +317,117 @@ void rlImGuiEndInitImGui(void)
 
 static void SetupKeymap(void)
 {
-    if (!RaylibKeyMap.empty())
+    //if (!RaylibKeyMap.empty())
+    if(hmlen(RaylibKeyMap) > 0)
         return;
 
     // build up a map of raylib keys to ImGuiKeys
-    RaylibKeyMap[KEY_APOSTROPHE] = ImGuiKey_Apostrophe;
-    RaylibKeyMap[KEY_COMMA] = ImGuiKey_Comma;
-    RaylibKeyMap[KEY_MINUS] = ImGuiKey_Minus;
-    RaylibKeyMap[KEY_PERIOD] = ImGuiKey_Period;
-    RaylibKeyMap[KEY_SLASH] = ImGuiKey_Slash;
-    RaylibKeyMap[KEY_ZERO] = ImGuiKey_0;
-    RaylibKeyMap[KEY_ONE] = ImGuiKey_1;
-    RaylibKeyMap[KEY_TWO] = ImGuiKey_2;
-    RaylibKeyMap[KEY_THREE] = ImGuiKey_3;
-    RaylibKeyMap[KEY_FOUR] = ImGuiKey_4;
-    RaylibKeyMap[KEY_FIVE] = ImGuiKey_5;
-    RaylibKeyMap[KEY_SIX] = ImGuiKey_6;
-    RaylibKeyMap[KEY_SEVEN] = ImGuiKey_7;
-    RaylibKeyMap[KEY_EIGHT] = ImGuiKey_8;
-    RaylibKeyMap[KEY_NINE] = ImGuiKey_9;
-    RaylibKeyMap[KEY_SEMICOLON] = ImGuiKey_Semicolon;
-    RaylibKeyMap[KEY_EQUAL] = ImGuiKey_Equal;
-    RaylibKeyMap[KEY_A] = ImGuiKey_A;
-    RaylibKeyMap[KEY_B] = ImGuiKey_B;
-    RaylibKeyMap[KEY_C] = ImGuiKey_C;
-    RaylibKeyMap[KEY_D] = ImGuiKey_D;
-    RaylibKeyMap[KEY_E] = ImGuiKey_E;
-    RaylibKeyMap[KEY_F] = ImGuiKey_F;
-    RaylibKeyMap[KEY_G] = ImGuiKey_G;
-    RaylibKeyMap[KEY_H] = ImGuiKey_H;
-    RaylibKeyMap[KEY_I] = ImGuiKey_I;
-    RaylibKeyMap[KEY_J] = ImGuiKey_J;
-    RaylibKeyMap[KEY_K] = ImGuiKey_K;
-    RaylibKeyMap[KEY_L] = ImGuiKey_L;
-    RaylibKeyMap[KEY_M] = ImGuiKey_M;
-    RaylibKeyMap[KEY_N] = ImGuiKey_N;
-    RaylibKeyMap[KEY_O] = ImGuiKey_O;
-    RaylibKeyMap[KEY_P] = ImGuiKey_P;
-    RaylibKeyMap[KEY_Q] = ImGuiKey_Q;
-    RaylibKeyMap[KEY_R] = ImGuiKey_R;
-    RaylibKeyMap[KEY_S] = ImGuiKey_S;
-    RaylibKeyMap[KEY_T] = ImGuiKey_T;
-    RaylibKeyMap[KEY_U] = ImGuiKey_U;
-    RaylibKeyMap[KEY_V] = ImGuiKey_V;
-    RaylibKeyMap[KEY_W] = ImGuiKey_W;
-    RaylibKeyMap[KEY_X] = ImGuiKey_X;
-    RaylibKeyMap[KEY_Y] = ImGuiKey_Y;
-    RaylibKeyMap[KEY_Z] = ImGuiKey_Z;
-    RaylibKeyMap[KEY_SPACE] = ImGuiKey_Space;
-    RaylibKeyMap[KEY_ESCAPE] = ImGuiKey_Escape;
-    RaylibKeyMap[KEY_ENTER] = ImGuiKey_Enter;
-    RaylibKeyMap[KEY_TAB] = ImGuiKey_Tab;
-    RaylibKeyMap[KEY_BACKSPACE] = ImGuiKey_Backspace;
-    RaylibKeyMap[KEY_INSERT] = ImGuiKey_Insert;
-    RaylibKeyMap[KEY_DELETE] = ImGuiKey_Delete;
-    RaylibKeyMap[KEY_RIGHT] = ImGuiKey_RightArrow;
-    RaylibKeyMap[KEY_LEFT] = ImGuiKey_LeftArrow;
-    RaylibKeyMap[KEY_DOWN] = ImGuiKey_DownArrow;
-    RaylibKeyMap[KEY_UP] = ImGuiKey_UpArrow;
-    RaylibKeyMap[KEY_PAGE_UP] = ImGuiKey_PageUp;
-    RaylibKeyMap[KEY_PAGE_DOWN] = ImGuiKey_PageDown;
-    RaylibKeyMap[KEY_HOME] = ImGuiKey_Home;
-    RaylibKeyMap[KEY_END] = ImGuiKey_End;
-    RaylibKeyMap[KEY_CAPS_LOCK] = ImGuiKey_CapsLock;
-    RaylibKeyMap[KEY_SCROLL_LOCK] = ImGuiKey_ScrollLock;
-    RaylibKeyMap[KEY_NUM_LOCK] = ImGuiKey_NumLock;
-    RaylibKeyMap[KEY_PRINT_SCREEN] = ImGuiKey_PrintScreen;
-    RaylibKeyMap[KEY_PAUSE] = ImGuiKey_Pause;
-    RaylibKeyMap[KEY_F1] = ImGuiKey_F1;
-    RaylibKeyMap[KEY_F2] = ImGuiKey_F2;
-    RaylibKeyMap[KEY_F3] = ImGuiKey_F3;
-    RaylibKeyMap[KEY_F4] = ImGuiKey_F4;
-    RaylibKeyMap[KEY_F5] = ImGuiKey_F5;
-    RaylibKeyMap[KEY_F6] = ImGuiKey_F6;
-    RaylibKeyMap[KEY_F7] = ImGuiKey_F7;
-    RaylibKeyMap[KEY_F8] = ImGuiKey_F8;
-    RaylibKeyMap[KEY_F9] = ImGuiKey_F9;
-    RaylibKeyMap[KEY_F10] = ImGuiKey_F10;
-    RaylibKeyMap[KEY_F11] = ImGuiKey_F11;
-    RaylibKeyMap[KEY_F12] = ImGuiKey_F12;
-    RaylibKeyMap[KEY_LEFT_SHIFT] = ImGuiKey_LeftShift;
-    RaylibKeyMap[KEY_LEFT_CONTROL] = ImGuiKey_LeftCtrl;
-    RaylibKeyMap[KEY_LEFT_ALT] = ImGuiKey_LeftAlt;
-    RaylibKeyMap[KEY_LEFT_SUPER] = ImGuiKey_LeftSuper;
-    RaylibKeyMap[KEY_RIGHT_SHIFT] = ImGuiKey_RightShift;
-    RaylibKeyMap[KEY_RIGHT_CONTROL] = ImGuiKey_RightCtrl;
-    RaylibKeyMap[KEY_RIGHT_ALT] = ImGuiKey_RightAlt;
-    RaylibKeyMap[KEY_RIGHT_SUPER] = ImGuiKey_RightSuper;
-    RaylibKeyMap[KEY_KB_MENU] = ImGuiKey_Menu;
-    RaylibKeyMap[KEY_LEFT_BRACKET] = ImGuiKey_LeftBracket;
-    RaylibKeyMap[KEY_BACKSLASH] = ImGuiKey_Backslash;
-    RaylibKeyMap[KEY_RIGHT_BRACKET] = ImGuiKey_RightBracket;
-    RaylibKeyMap[KEY_GRAVE] = ImGuiKey_GraveAccent;
-    RaylibKeyMap[KEY_KP_0] = ImGuiKey_Keypad0;
-    RaylibKeyMap[KEY_KP_1] = ImGuiKey_Keypad1;
-    RaylibKeyMap[KEY_KP_2] = ImGuiKey_Keypad2;
-    RaylibKeyMap[KEY_KP_3] = ImGuiKey_Keypad3;
-    RaylibKeyMap[KEY_KP_4] = ImGuiKey_Keypad4;
-    RaylibKeyMap[KEY_KP_5] = ImGuiKey_Keypad5;
-    RaylibKeyMap[KEY_KP_6] = ImGuiKey_Keypad6;
-    RaylibKeyMap[KEY_KP_7] = ImGuiKey_Keypad7;
-    RaylibKeyMap[KEY_KP_8] = ImGuiKey_Keypad8;
-    RaylibKeyMap[KEY_KP_9] = ImGuiKey_Keypad9;
-    RaylibKeyMap[KEY_KP_DECIMAL] = ImGuiKey_KeypadDecimal;
-    RaylibKeyMap[KEY_KP_DIVIDE] = ImGuiKey_KeypadDivide;
-    RaylibKeyMap[KEY_KP_MULTIPLY] = ImGuiKey_KeypadMultiply;
-    RaylibKeyMap[KEY_KP_SUBTRACT] = ImGuiKey_KeypadSubtract;
-    RaylibKeyMap[KEY_KP_ADD] = ImGuiKey_KeypadAdd;
-    RaylibKeyMap[KEY_KP_ENTER] = ImGuiKey_KeypadEnter;
-    RaylibKeyMap[KEY_KP_EQUAL] = ImGuiKey_KeypadEqual;
+    KeyboardKey key;
+    key = KEY_APOSTROPHE;    hmput(RaylibKeyMap, key, ImGuiKey_Apostrophe);
+    key = KEY_COMMA;         hmput(RaylibKeyMap, key, ImGuiKey_Comma);
+    key = KEY_MINUS;         hmput(RaylibKeyMap, key, ImGuiKey_Minus);
+    key = KEY_PERIOD;        hmput(RaylibKeyMap, key, ImGuiKey_Period);
+    key = KEY_SLASH;         hmput(RaylibKeyMap, key, ImGuiKey_Slash);
+    key = KEY_ZERO;          hmput(RaylibKeyMap, key, ImGuiKey_0);
+    key = KEY_ONE;           hmput(RaylibKeyMap, key, ImGuiKey_1);
+    key = KEY_TWO;           hmput(RaylibKeyMap, key, ImGuiKey_2);
+    key = KEY_THREE;         hmput(RaylibKeyMap, key, ImGuiKey_3);
+    key = KEY_FOUR;          hmput(RaylibKeyMap, key, ImGuiKey_4);
+    key = KEY_FIVE;          hmput(RaylibKeyMap, key, ImGuiKey_5);
+    key = KEY_SIX;           hmput(RaylibKeyMap, key, ImGuiKey_6);
+    key = KEY_SEVEN;         hmput(RaylibKeyMap, key, ImGuiKey_7);
+    key = KEY_EIGHT;         hmput(RaylibKeyMap, key, ImGuiKey_8);
+    key = KEY_NINE;          hmput(RaylibKeyMap, key, ImGuiKey_9);
+    key = KEY_SEMICOLON;     hmput(RaylibKeyMap, key, ImGuiKey_Semicolon);
+    key = KEY_EQUAL;         hmput(RaylibKeyMap, key, ImGuiKey_Equal);
+    key = KEY_A;             hmput(RaylibKeyMap, key, ImGuiKey_A);
+    key = KEY_B;             hmput(RaylibKeyMap, key, ImGuiKey_B);
+    key = KEY_C;             hmput(RaylibKeyMap, key, ImGuiKey_C);
+    key = KEY_D;             hmput(RaylibKeyMap, key, ImGuiKey_D);
+    key = KEY_E;             hmput(RaylibKeyMap, key, ImGuiKey_E);
+    key = KEY_F;             hmput(RaylibKeyMap, key, ImGuiKey_F);
+    key = KEY_G;             hmput(RaylibKeyMap, key, ImGuiKey_G);
+    key = KEY_H;             hmput(RaylibKeyMap, key, ImGuiKey_H);
+    key = KEY_I;             hmput(RaylibKeyMap, key, ImGuiKey_I);
+    key = KEY_J;             hmput(RaylibKeyMap, key, ImGuiKey_J);
+    key = KEY_K;             hmput(RaylibKeyMap, key, ImGuiKey_K);
+    key = KEY_L;             hmput(RaylibKeyMap, key, ImGuiKey_L);
+    key = KEY_M;             hmput(RaylibKeyMap, key, ImGuiKey_M);
+    key = KEY_N;             hmput(RaylibKeyMap, key, ImGuiKey_N);
+    key = KEY_O;             hmput(RaylibKeyMap, key, ImGuiKey_O);
+    key = KEY_P;             hmput(RaylibKeyMap, key, ImGuiKey_P);
+    key = KEY_Q;             hmput(RaylibKeyMap, key, ImGuiKey_Q);
+    key = KEY_R;             hmput(RaylibKeyMap, key, ImGuiKey_R);
+    key = KEY_S;             hmput(RaylibKeyMap, key, ImGuiKey_S);
+    key = KEY_T;             hmput(RaylibKeyMap, key, ImGuiKey_T);
+    key = KEY_U;             hmput(RaylibKeyMap, key, ImGuiKey_U);
+    key = KEY_V;             hmput(RaylibKeyMap, key, ImGuiKey_V);
+    key = KEY_W;             hmput(RaylibKeyMap, key, ImGuiKey_W);
+    key = KEY_X;             hmput(RaylibKeyMap, key, ImGuiKey_X);
+    key = KEY_Y;             hmput(RaylibKeyMap, key, ImGuiKey_Y);
+    key = KEY_Z;             hmput(RaylibKeyMap, key, ImGuiKey_Z);
+    key = KEY_SPACE;         hmput(RaylibKeyMap, key, ImGuiKey_Space);
+    key = KEY_ESCAPE;        hmput(RaylibKeyMap, key, ImGuiKey_Escape);
+    key = KEY_ENTER;         hmput(RaylibKeyMap, key, ImGuiKey_Enter);
+    key = KEY_TAB;           hmput(RaylibKeyMap, key, ImGuiKey_Tab);
+    key = KEY_BACKSPACE;     hmput(RaylibKeyMap, key, ImGuiKey_Backspace);
+    key = KEY_INSERT;        hmput(RaylibKeyMap, key, ImGuiKey_Insert);
+    key = KEY_DELETE;        hmput(RaylibKeyMap, key, ImGuiKey_Delete);
+    key = KEY_RIGHT;         hmput(RaylibKeyMap, key, ImGuiKey_RightArrow);
+    key = KEY_LEFT;          hmput(RaylibKeyMap, key, ImGuiKey_LeftArrow);
+    key = KEY_DOWN;          hmput(RaylibKeyMap, key, ImGuiKey_DownArrow);
+    key = KEY_UP;            hmput(RaylibKeyMap, key, ImGuiKey_UpArrow);
+    key = KEY_PAGE_UP;       hmput(RaylibKeyMap, key, ImGuiKey_PageUp);
+    key = KEY_PAGE_DOWN;     hmput(RaylibKeyMap, key, ImGuiKey_PageDown);
+    key = KEY_HOME;          hmput(RaylibKeyMap, key, ImGuiKey_Home);
+    key = KEY_END;           hmput(RaylibKeyMap, key, ImGuiKey_End);
+    key = KEY_CAPS_LOCK;     hmput(RaylibKeyMap, key, ImGuiKey_CapsLock);
+    key = KEY_SCROLL_LOCK;   hmput(RaylibKeyMap, key, ImGuiKey_ScrollLock);
+    key = KEY_NUM_LOCK;      hmput(RaylibKeyMap, key, ImGuiKey_NumLock);
+    key = KEY_PRINT_SCREEN;  hmput(RaylibKeyMap, key, ImGuiKey_PrintScreen);
+    key = KEY_PAUSE;         hmput(RaylibKeyMap, key, ImGuiKey_Pause);
+    key = KEY_F1;            hmput(RaylibKeyMap, key, ImGuiKey_F1);
+    key = KEY_F2;            hmput(RaylibKeyMap, key, ImGuiKey_F2);
+    key = KEY_F3;            hmput(RaylibKeyMap, key, ImGuiKey_F3);
+    key = KEY_F4;            hmput(RaylibKeyMap, key, ImGuiKey_F4);
+    key = KEY_F5;            hmput(RaylibKeyMap, key, ImGuiKey_F5);
+    key = KEY_F6;            hmput(RaylibKeyMap, key, ImGuiKey_F6);
+    key = KEY_F7;            hmput(RaylibKeyMap, key, ImGuiKey_F7);
+    key = KEY_F8;            hmput(RaylibKeyMap, key, ImGuiKey_F8);
+    key = KEY_F9;            hmput(RaylibKeyMap, key, ImGuiKey_F9);
+    key = KEY_F10;           hmput(RaylibKeyMap, key, ImGuiKey_F10);
+    key = KEY_F11;           hmput(RaylibKeyMap, key, ImGuiKey_F11);
+    key = KEY_F12;           hmput(RaylibKeyMap, key, ImGuiKey_F12);
+    key = KEY_LEFT_SHIFT;    hmput(RaylibKeyMap, key, ImGuiKey_LeftShift);
+    key = KEY_LEFT_CONTROL;  hmput(RaylibKeyMap, key, ImGuiKey_LeftCtrl);
+    key = KEY_LEFT_ALT;      hmput(RaylibKeyMap, key, ImGuiKey_LeftAlt);
+    key = KEY_LEFT_SUPER;    hmput(RaylibKeyMap, key, ImGuiKey_LeftSuper);
+    key = KEY_RIGHT_SHIFT;   hmput(RaylibKeyMap, key, ImGuiKey_RightShift);
+    key = KEY_RIGHT_CONTROL; hmput(RaylibKeyMap, key, ImGuiKey_RightCtrl);
+    key = KEY_RIGHT_ALT;     hmput(RaylibKeyMap, key, ImGuiKey_RightAlt);
+    key = KEY_RIGHT_SUPER;   hmput(RaylibKeyMap, key, ImGuiKey_RightSuper);
+    key = KEY_KB_MENU;       hmput(RaylibKeyMap, key, ImGuiKey_Menu);
+    key = KEY_LEFT_BRACKET;  hmput(RaylibKeyMap, key, ImGuiKey_LeftBracket);
+    key = KEY_BACKSLASH;     hmput(RaylibKeyMap, key, ImGuiKey_Backslash);
+    key = KEY_RIGHT_BRACKET; hmput(RaylibKeyMap, key, ImGuiKey_RightBracket);
+    key = KEY_GRAVE;         hmput(RaylibKeyMap, key, ImGuiKey_GraveAccent);
+    key = KEY_KP_0;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad0);
+    key = KEY_KP_1;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad1);
+    key = KEY_KP_2;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad2);
+    key = KEY_KP_3;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad3);
+    key = KEY_KP_4;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad4);
+    key = KEY_KP_5;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad5);
+    key = KEY_KP_6;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad6);
+    key = KEY_KP_7;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad7);
+    key = KEY_KP_8;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad8);
+    key = KEY_KP_9;          hmput(RaylibKeyMap, key, ImGuiKey_Keypad9);
+    key = KEY_KP_DECIMAL;    hmput(RaylibKeyMap, key, ImGuiKey_KeypadDecimal);
+    key = KEY_KP_DIVIDE;     hmput(RaylibKeyMap, key, ImGuiKey_KeypadDivide);
+    key = KEY_KP_MULTIPLY;   hmput(RaylibKeyMap, key, ImGuiKey_KeypadMultiply);
+    key = KEY_KP_SUBTRACT;   hmput(RaylibKeyMap, key, ImGuiKey_KeypadSubtract);
+    key = KEY_KP_ADD;        hmput(RaylibKeyMap, key, ImGuiKey_KeypadAdd);
+    key = KEY_KP_ENTER;      hmput(RaylibKeyMap, key, ImGuiKey_KeypadEnter);
+    key = KEY_KP_EQUAL;      hmput(RaylibKeyMap, key, ImGuiKey_KeypadEqual);
 }
 
 static void SetupGlobals(void)
@@ -744,21 +750,21 @@ bool ImGui_ImplRaylib_ProcessEvents(void)
         io.AddKeyEvent(ImGuiMod_Super, superDown);
     LastSuperPressed = superDown;
 
-    // get the pressed keys, just walk the keys so we don
     for (int keyId = KEY_NULL; keyId < KeyboardKey::KEY_KP_EQUAL; keyId++)
     {
         if (!IsKeyPressed(keyId))
             continue;
-        auto keyItr = RaylibKeyMap.find(KeyboardKey(keyId));
-        if (keyItr != RaylibKeyMap.end())
-            io.AddKeyEvent(keyItr->second, true);
+
+        // stb_ds equivalent of std::map find
+        KeyboardPair *mappedKey = (KeyboardPair*)hmgetp_null(RaylibKeyMap, keyId);
+        if (mappedKey)
+            io.AddKeyEvent(mappedKey->value, true);
     }
 
-    // look for any keys that were down last frame and see if they were down and are released
-    for (const auto keyItr : RaylibKeyMap)
+    for (int i = 0; i < hmlen(RaylibKeyMap); i++)
     {
-        if (IsKeyReleased(keyItr.first))
-            io.AddKeyEvent(keyItr.second, false);
+        if (IsKeyReleased(RaylibKeyMap[i].key))
+            io.AddKeyEvent(RaylibKeyMap[i].value, false);
     }
 
     if (io.WantCaptureKeyboard)

@@ -5,9 +5,10 @@ C3C=c3c
 
 C3CFLAGS=-O0 -g
 CFLAGS=-pipe -O0 -ggdb
+CXXFLAGS=-fno-threadsafe-statics -fno-exceptions -nostdlib++ -fno-rtti
 RAYLIB_FLAGS=-I./raylib/src -I./raylib/src/external/glfw/include -DPLATFORM_DESKTOP -D_GLFW_X11 -w $(CFLAGS)
 
-IMGUI_FLAGS=-DPLATFORM_DRM -DCIMGUI_USE_GLFW -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1 -I./cimgui/ -I./rlImGui/ -I./cimgui/imgui/ $(CFLAGS)
+IMGUI_FLAGS=-DPLATFORM_DRM -DCIMGUI_USE_GLFW -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1 -I./cimgui/ -I./rlImGui/ -I./cimgui/imgui/ $(CFLAGS) $(CXXFLAGS)
 
 raylib_objects := $(BUILD)/rcore.o $(BUILD)/rglfw.o $(BUILD)/rshapes.o $(BUILD)/rtext.o $(BUILD)/rtextures.o $(BUILD)/utils.o $(BUILD)/raudio.o
 
@@ -16,7 +17,7 @@ c3_files := common.c3 compiler.c3 vm.c3 raylib.c3 animation.c3 imgui.c3 log.c3
 all: render
 
 render: $(c3_files) render.c3  $(BUILD)/libraylib.a $(BUILD)/libimgui.a $(BUILD)/logc.o
-	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z $(BUILD)/logc.o -z -lstdc++
+	$(C3C) compile $(C3CFLAGS) -o render $(c3_files) render.c3 -l $(BUILD)/libraylib.a -l $(BUILD)/libimgui.a -z $(BUILD)/logc.o
 
 $(BUILD)/logc.o: logc.c
 	$(CC) -c $(CFLAGS) logc.c -o $(BUILD)/logc.o
