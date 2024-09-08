@@ -15,31 +15,37 @@ make
 
 ## TODO
 
+### high
+- [ ] Command to turn textbox on and off
+- [ ] Implement saying text as characters, i.e `bob "Hello!"`.
 - [ ] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
 - [ ] Custom build system using wren https://wren.io/
-- [ ] Implement saying text as characters, i.e `bob "Hello!"`.
+- [ ] Add `block` keyword that will block without doing anything.
+
+### medium
+- [ ] Overlay over the game and ability to animate it
+- [ ] Implement more interpolators, and add some form of syntax for them.
+- [ ] Apply passive effects onto sprites.
+- [ ] Implement player choices (BIG)
+- [ ] sound effects, fade audio in and out.
+- [ ] Load custom fonts from chickenmilk.
+
+### low
+- [ ] Refactor text displaying system to duplicate strings from the file and store them separetely, then free the file contents.
+- [ ] Dialog history menu where you can scroll through all previously spoken lines.
+- [ ] Main menu.
+- [ ] Save Game state.
+- [ ] Custom menus from inside chickenmilk.
 - [ ] Target Platforms (depends on the custom build system)
   + [X] Linux
   + [ ] Windows
   + [ ] iToddler OS
   + [ ] OpenBSD and other BSD types
-- [ ] Apply passive effects onto sprites.
-- [ ] Main menu.
-- [ ] Dialog history menu where you can scroll through all previously spoken lines.
-- [ ] Save Game state.
-- [ ] Playing music and sound effects, fade audio in and out.
-- [ ] Load custom fonts from chickenmilk.
-- [ ] Add `block` keyword that will block without doing anything.
-- [ ] Refactor text displaying system to duplicate strings from the file and store them separetely, then free the file contents.
-- [ ] Refactor big imgui chunk of code into its own module and put it behind a keybind
-- [ ] Implement more interpolators, and add some form of syntax for them.
-- [ ] Implement player choices (BIG)
-- [ ] Custom menus from inside chickenmilk.
-- [ ] Command to turn textbox on and off
-- [ ] Overlay over the game and ability to animate it
 
 ## Done
 
+- [X] Refactor big imgui chunk of code into its own module and put it behind a keybind
+- [X] Playing music
 - [X] Logging module.
   + [X] Handles multithreading.
   + [X] Cross-platform terminal colors. (Fuck windows you dont get colors, get a better terminal)

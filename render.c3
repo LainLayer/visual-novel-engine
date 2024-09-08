@@ -105,6 +105,9 @@ fn void assets_to_textures() {
     }
 }
 
+bool debug_on = true;
+bool debug_system_displayed = false;
+
 fn void debug_system() {
     imgui::raylib_begin();
     imgui::begin("debug system");
@@ -234,6 +237,8 @@ fn void debug_system() {
 
 
     imgui::end();
+
+    debug_system_displayed = true;
 }
 
 fn void main() {
@@ -306,16 +311,19 @@ fn void main() {
     vm::step();
 
     while(!raylib::window_should_close()) {
-        debug_system();
+        debug_system_displayed = false;
+        if(debug_on) debug_system();
 
         ImGuiWantsSomething imgui_wants = imgui::get_imgui_wants(imgui::get_io());
 
-        if(!imgui_wants.want_capture_keyboard) {
+        if(!(debug_on && imgui_wants.want_capture_keyboard)) {
             if(raylib::is_key_pressed(KeyboardKey.SPACE.value)) {
                 (&animation::animation_list[common::current_animation]).skip();
                 vm::step();
             } else if(raylib::is_key_pressed(KeyboardKey.F1.value)) {
                 vm::step_back();
+            } else if(raylib::is_key_pressed(KeyboardKey.F2.value)) {
+                debug_on = !debug_on;
             }
         }
 
@@ -387,7 +395,7 @@ fn void main() {
                 common::WHITE
             );
 
-            imgui::raylib_end();
+            if(debug_system_displayed) imgui::raylib_end();
         raylib::end_drawing();
     }
 
