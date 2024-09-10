@@ -13,6 +13,8 @@ import log;
 import raylib;
 import imgui;
 
+def LoadingThreadPool = ThreadPool(<16384>);
+
 RenderTexture2D game_texture;
 Rectangle       game_rectangle;
 
@@ -273,7 +275,7 @@ fn void main() {
     defer raylib::unload_render_texture(game_texture);
 
     {
-        ThreadPool(<16384>) thread_pool;
+        LoadingThreadPool thread_pool;
 
         total_assets_to_load = common::sprite_data_list.len() + common::music_data_list.len();
 

@@ -11,6 +11,13 @@ import vm;
 import raylib;
 import animation;
 
+def ActionList           = List(<Action>);
+def FlagList             = List(<Flag>);
+def CharSliceList        = List(<char[]>);
+def SceneList            = List(<Scene>);
+def TokenList            = List(<Token>);
+def InstructionIndexList = List(<InstructionIndex>);
+
 enum TokenType : char {
     INVALID_TOKEN,
 
@@ -147,21 +154,20 @@ struct Action {
 struct Scene {
     char[]         scene_id;
     char[]         description;
-    List(<Action>) actions;
+    ActionList      actions;
 }
 
-
-uint           tokenizing_cursor;
-Location       tokenizing_location;
-char[]         file_data;
-char[]         scenario_title;
-char[]         author;
-String         filename;
-List(<Flag>)   flags;
-List(<char[]>) languages;
-List(<Scene>)  scenes;
-List(<Token>)  goto_promises;
-Token          current_token;
+uint          tokenizing_cursor;
+Location      tokenizing_location;
+char[]        file_data;
+char[]        scenario_title;
+char[]        author;
+String        filename;
+FlagList      flags;
+CharSliceList languages;
+SceneList     scenes;
+TokenList     goto_promises;
+Token         current_token;
 
 macro bool character_exists(char[] name) {
     return common::character_name_table.has_key(name);
@@ -802,7 +808,7 @@ fn void compile_file(String path) {
         goto_promises.free();
     }
 
-    List(<InstructionIndex>) labels;
+    InstructionIndexList labels;
     defer labels.free();
 
     foreach(Scene scene : scenes) {
