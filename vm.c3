@@ -41,7 +41,9 @@ struct Instruction {
         /* SHOW_TEXT */
         struct {
             char[] text_to_show;
+            char[] said_by;
             char[] previously_shown_text;
+            char[] previously_said_by;
         }
 
         /* GOTO_LABEL */
@@ -115,8 +117,12 @@ fn bool apply_instruction(Instruction inst) {
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
         inst.previously_shown_text = common::text.text;
-        common::text.text = inst.text_to_show;
+        inst.previously_said_by    = common::text.said_by;
+
+        common::text.text    = inst.text_to_show;
+        common::text.said_by = inst.said_by;
         common::text.step = 0;
+
         instruction_pointer += 1;
     case InstructionType.GOTO_LABEL:
         instruction_pointer = inst.label_to_go_to;
@@ -177,8 +183,12 @@ fn bool apply_instruction(Instruction inst) {
         instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         inst.previously_shown_text = common::text.text;
-        common::text.text = "END.";
-        common::text.step = 0;
+        inst.previously_said_by    = common::text.said_by;
+
+        common::text.text    = "END.";
+        common::text.step    = 0;
+        common::text.said_by = "";
+
         no_push = (instruction_history[^1].instruction_type == InstructionType.END_SCENARIO);
     }
     inst.previous_instruction_pointer = old_instruction_pointer;
@@ -222,7 +232,8 @@ fn void step_back() {
         switch(inst.instruction_type) {
         case InstructionType.SHOW_TEXT:
         case InstructionType.END_SCENARIO:
-            common::text.text = inst.previously_shown_text;
+            common::text.text    = inst.previously_shown_text;
+            common::text.said_by = inst.previously_said_by;
 
         case InstructionType.ANIMATE:
             (&animation::animation_list[inst.animation_index]).reset();

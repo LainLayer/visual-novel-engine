@@ -134,7 +134,11 @@ struct Action {
     ActionType action_type;
 
     union {
-        char[] text_to_say; /* SAY   */
+        struct {
+            char[] text_to_say; /* SAY   */
+            char[] said_by;     /* SAY   */
+        }
+
         char[] scene_id;    /* GOTO  */
 
         struct {            /* SPAWN */
@@ -174,7 +178,8 @@ macro bool character_exists(char[] name) {
 }
 
 macro bool character_has_emotion(char[] name, char[] emotion) {
-    return common::get_character_by_name(name).emotion_sprite_table.has_key(emotion);
+    return common::get_character_by_name(name)
+                  .emotion_sprite_table.has_key(emotion);
 }
 
 fn bool has_flag(char[] name) @inline {
@@ -516,6 +521,7 @@ fn void parse_scene() {
         case TokenType.KEYWORD_SAY:
             action.action_type = ActionType.SAY;
             action.text_to_say = expect(TokenType.STRING_LITERAL).string_value;
+            action.said_by     = "";
             expect(TokenType.SEMICOLON);
 
         case TokenType.KEYWORD_GOTO:
@@ -649,7 +655,16 @@ fn void parse_scene() {
             |};
 
             expect(TokenType.SEMICOLON);
+        case TokenType.IDENTIFIER:
+            action.action_type = ActionType.SAY;
+            char[] character_name = current_token.identifier_value;
 
+            if(!character_exists(character_name)) die("Trying to talk as non-existent character '%s'", character_name);
+
+            action.text_to_say = expect(TokenType.STRING_LITERAL).string_value;
+            action.said_by     = character_name;
+
+            expect(TokenType.SEMICOLON);
         default:
             die("unimplemented action %s", current_token.token_type);
         }
@@ -819,6 +834,7 @@ fn void compile_file(String path) {
                 vm::instructions.push({
                     .instruction_type = InstructionType.SHOW_TEXT,
                     .text_to_show     = action.text_to_say,
+                    .said_by          = action.said_by,
                     .blocking         = true,
                 });
             case GOTO:

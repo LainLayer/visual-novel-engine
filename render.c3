@@ -31,6 +31,9 @@ const Rectangle TEXTBOX_RECTANGLE = {
 };
 
 fn void TextAnimation.render(&animation) {
+    raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
+    raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, common::WHITE);
+
     if(animation.step >= animation.duration) {
         io::bprintf(&common::message_box_buffer, "%s\0", animation.text);
     } else {
@@ -54,6 +57,34 @@ fn void TextAnimation.render(&animation) {
         true,
         common::WHITE
     );
+
+    if(common::text.said_by != "") {
+        @pool() {
+            const CInt  NAME_SIZE = 24;
+            const float PADDING   = 20;
+
+            ZString name_terminated = string::tformat_zstr((String)common::text.said_by);
+            CInt    name_width      = raylib::measure_text(name_terminated, NAME_SIZE);
+
+            Rectangle name_tag_rect = {
+                .x      = TEXTBOX_RECTANGLE.x,
+                .y      = TEXTBOX_RECTANGLE.y - (float)(NAME_SIZE) - PADDING/2.0f - 5.0f,
+                .width  = (float)(name_width + PADDING * 2),
+                .height = (float)(NAME_SIZE  + PADDING)
+            };
+
+            raylib::draw_rectangle_rec(name_tag_rect, {0x11,0x11,0x11,180});
+            raylib::draw_rectangle_lines_ex(name_tag_rect, 5.0, common::WHITE);
+
+            raylib::draw_text(
+                name_terminated,
+                (CInt)(name_tag_rect.x + PADDING),
+                (CInt)(name_tag_rect.y + (PADDING/2)),
+                NAME_SIZE,
+                common::WHITE
+            );
+        };
+    }
 }
 
 fn void handle_window_resize() {
@@ -383,8 +414,6 @@ fn void main() {
                     }
                 }
 
-                raylib::draw_rectangle_rec(TEXTBOX_RECTANGLE, {0x11,0x11,0x11,180});
-                raylib::draw_rectangle_lines_ex(TEXTBOX_RECTANGLE, 5.0, common::WHITE);
                 common::text.render();
             raylib::end_texture_mode();
 

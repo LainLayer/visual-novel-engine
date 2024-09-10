@@ -122,10 +122,12 @@ struct TextAnimation {
     float duration;
     float step;
     char[] text;
+    char[] said_by;
 }
 
 TextAnimation text = {
     .duration = 0.35,
     .step     = 0.0,
-    .text     = ""
+    .text     = "",
+    .said_by  = ""
 };
