@@ -338,6 +338,19 @@ fn void main() {
             raylib::end_drawing();
         }
 
+        raylib::begin_drawing();
+            raylib::clear_background({0x25, 0x25, 0x25, 255});
+            ZString loading_text = "Uploading assets...";
+            CInt    text_width   = raylib::measure_text(loading_text, 24);
+            raylib::draw_text(
+                loading_text,
+                raylib::get_screen_width()  / 2 - text_width/2,
+                raylib::get_screen_height() / 2 - 12,
+                24,
+                common::WHITE
+            );
+        raylib::end_drawing();
+
         assets_to_textures(); // OpenGL is shit! It crashes if you try loading textures in a separate thread.
     }
 
