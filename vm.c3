@@ -30,6 +30,8 @@ enum InstructionType : char {
 
     PLAY_MUSIC,
     STOP_MUSIC,
+
+    BLOCK,
 }
 
 struct Instruction {
@@ -167,6 +169,9 @@ fn bool apply_instruction(Instruction inst) {
         common::current_music = common::NO_MUSIC;
 
         instruction_pointer += 1;
+    case InstructionType.BLOCK:
+
+        instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
         reverse.text_to_show = common::text.text;
         reverse.said_by      = common::text.said_by;
@@ -256,6 +261,7 @@ fn void step_back() {
         case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
         case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.direction_to_face;
         case InstructionType.GOTO_LABEL:               break;
+        case InstructionType.BLOCK:                    break;
         }
         instruction_pointer = reverse_inst.previous_instruction_pointer;
     } while(!instruction_history[^1].blocking);

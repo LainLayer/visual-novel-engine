@@ -67,6 +67,8 @@ enum TokenType : char {
     KEYWORD_PLAY_MUSIC,
     KEYWORD_STOP_MUSIC,
 
+    KEYWORD_BLOCK,
+
     KEYWORD_END,
 
     EOF
@@ -128,6 +130,8 @@ enum ActionType : char {
 
     PLAY_MUSIC,
     STOP_MUSIC,
+
+    BLOCK,
 
     END,
 }
@@ -257,6 +261,7 @@ fn Token parse_identifier() {
     case "emote":      result.token_type = TokenType.KEYWORD_EMOTE;
     case "pause":      result.token_type = TokenType.KEYWORD_PAUSE;
     case "music":      result.token_type = TokenType.KEYWORD_MUSIC;
+    case "block":      result.token_type = TokenType.KEYWORD_BLOCK;
     case "loop":       result.token_type = TokenType.KEYWORD_LOOP;
     case "flag":       result.token_type = TokenType.KEYWORD_FLAG;
     case "show":       result.token_type = TokenType.KEYWORD_SHOW;
@@ -524,6 +529,9 @@ fn void parse_scene() {
             action.action_type = ActionType.SAY;
             action.text_to_say = expect(TokenType.STRING_LITERAL).string_value;
             action.said_by     = "";
+            expect(TokenType.SEMICOLON);
+        case TokenType.KEYWORD_BLOCK:
+            action.action_type = ActionType.BLOCK;
             expect(TokenType.SEMICOLON);
 
         case TokenType.KEYWORD_GOTO:
@@ -951,6 +959,11 @@ fn void compile_file(String path) {
                     .instruction_type  = InstructionType.STOP_MUSIC,
                     .music_index       = action.music_index,
                     .blocking          = false,
+                });
+            case BLOCK:
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.BLOCK,
+                    .blocking          = true,
                 });
             }
         }

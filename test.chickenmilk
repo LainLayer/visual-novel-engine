@@ -44,7 +44,7 @@ scene test_scene "Scene for testing new feature" {
         turn nika left;
     }
 
-    say "...";
+    block;
 
     show textbox;
 
