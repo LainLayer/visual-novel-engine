@@ -106,7 +106,7 @@ fn bool apply_instruction(Instruction inst) {
         instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
         reverse.set_visibility_to = common::characters[inst.character_index].visible;
-        (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
+        common::characters[inst.character_index].visible = inst.set_visibility_to;
 
         instruction_pointer += 1;
     case InstructionType.TEXTBOX_VISIBILITY_SET:
@@ -116,19 +116,19 @@ fn bool apply_instruction(Instruction inst) {
         instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
         reverse.set_position_to = common::characters[inst.character_index].position;
-        (&common::characters[inst.character_index]).position = inst.set_position_to;
+        common::characters[inst.character_index].position = inst.set_position_to;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
         reverse.set_emotion_to = common::characters[inst.character_index].current_emotion;
-        (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
+        common::characters[inst.character_index].current_emotion = inst.set_emotion_to;
 
         instruction_pointer += 1;
     case InstructionType.ANIMATE:
         reverse.animation_index = common::current_animation;
         common::current_animation = inst.animation_index;
 
-        (&animation::animation_list[inst.animation_index]).reset();
+        animation::animation_list[inst.animation_index].reset();
 
         instruction_pointer += 1;
     case InstructionType.BACKGROUND:
@@ -138,7 +138,7 @@ fn bool apply_instruction(Instruction inst) {
         instruction_pointer += 1;
     case InstructionType.CHARACTER_FACE:
         reverse.direction_to_face = common::characters[inst.character_index].direction;
-        (&common::characters[inst.character_index]).direction = inst.direction_to_face;
+        common::characters[inst.character_index].direction = inst.direction_to_face;
 
         instruction_pointer += 1;
     case InstructionType.PLAY_MUSIC:
@@ -225,10 +225,8 @@ fn void step_back() {
             common::text.said_by = inst.said_by;
 
         case InstructionType.ANIMATE:
-            (&animation::animation_list[inst.animation_index]).reset();
-            animation::animation_list[inst.animation_index].apply();
-
-            (&animation::animation_list[common::current_animation]).reset();
+            animation::animation_list[inst.animation_index].reset();
+            animation::animation_list[common::current_animation].reset();
 
             common::current_animation = inst.animation_index;
 
@@ -252,11 +250,11 @@ fn void step_back() {
             if(common::current_music != common::NO_MUSIC) {
                 raylib::play_music_stream(common::music_data_list[common::current_music].music);
             }
-        case InstructionType.TEXTBOX_VISIBILITY_SET:   common::show_text_box                                       = inst.set_visibility_to;
-        case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.set_visibility_to;
-        case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.set_position_to;
-        case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
-        case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.direction_to_face;
+        case InstructionType.TEXTBOX_VISIBILITY_SET:   common::show_text_box                                    = inst.set_visibility_to;
+        case InstructionType.CHARACTER_VISIBILITY_SET: common::characters[inst.character_index].visible         = inst.set_visibility_to;
+        case InstructionType.CHARACTER_POSITION:       common::characters[inst.character_index].position        = inst.set_position_to;
+        case InstructionType.CHARACTER_EMOTE:          common::characters[inst.character_index].current_emotion = inst.set_emotion_to;
+        case InstructionType.CHARACTER_FACE:           common::characters[inst.character_index].direction       = inst.direction_to_face;
         case InstructionType.GOTO_LABEL:               break;
         case InstructionType.BLOCK:                    break;
         }

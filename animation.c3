@@ -79,11 +79,11 @@ fn void Animation.reset(&animation) {
     case SEQUENCE:
     case GROUP:
         foreach(AnimationIndex index : animation.animations) {
-            (&animation_list[index]).reset();
+            animation_list[index].reset();
         }
     case IDLE: break;
     case LOOP:
-        (&animation_list[animation.animation_to_loop]).reset();
+        animation_list[animation.animation_to_loop].reset();
     case SLIDE:
     case PAUSE:
     case TURN:
@@ -97,7 +97,7 @@ fn void Animation.skip(&animation) {
     case SEQUENCE:
     case GROUP:
         foreach(AnimationIndex index : animation.animations) {
-            (&animation_list[index]).skip();
+            animation_list[index].skip();
         }
     case IDLE: break;
     case LOOP: break;
@@ -137,22 +137,22 @@ fn void Animation.tick(&animation, float delta_time) {
     case SEQUENCE:
         foreach(AnimationIndex index : animation.animations) {
             if(!animation_list[index].is_finished()) {
-                (&animation_list[index]).tick(delta_time);
+                animation_list[index].tick(delta_time);
                 break;
             }
         }
     case GROUP:
         foreach(AnimationIndex index : animation.animations) {
             if(!animation_list[index].is_finished()) {
-                (&animation_list[index]).tick(delta_time);
+                animation_list[index].tick(delta_time);
             }
         }
     case IDLE: break;
     case LOOP:
         if(animation_list[animation.animation_to_loop].is_finished()) {
-            (&animation_list[animation.animation_to_loop]).reset();
+            animation_list[animation.animation_to_loop].reset();
         } else {
-            (&animation_list[animation.animation_to_loop]).tick(delta_time);
+            animation_list[animation.animation_to_loop].tick(delta_time);
         }
     case SLIDE:
     case PAUSE:
@@ -178,10 +178,9 @@ fn void Animation.apply(animation) {
         foreach(AnimationIndex index : animation.animations) animation_list[index].apply();
 
     case SLIDE:
-        float      progress  = animation.step / animation.duration;
-        Character* character = &common::characters[animation.character_index];
+        float progress  = animation.step / animation.duration;
+        common::characters[animation.character_index].position = animation.slide_from.lerp(animation.slide_to, progress);
 
-        character.position = animation.slide_from.lerp(animation.slide_to, progress);
     case LOOP:
         animation_list[animation.animation_to_loop].apply();
     case TURN:
