@@ -281,8 +281,7 @@ fn void main() {
 
     compiler::compile_file("test.chickenmilk");
 
-    io::printf("\ninstruction size: %d\n", Instruction.sizeof);
-    io::printf("instruction index size: %d\n", InstructionIndex.sizeof);
+    common::@print_type_tree(Instruction);
 
     log::set_raylib_tracelog_callback();
 

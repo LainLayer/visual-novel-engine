@@ -5,6 +5,8 @@ import animation;
 import std::collections::map;
 import std::collections::list;
 
+import log;
+
 def Color   = char[<4>];
 def Vector2 = float[<2>];
 
@@ -131,3 +133,17 @@ TextAnimation text = {
     .text     = "",
     .said_by  = ""
 };
+
+macro void @print_type_tree(#type, uint recursion_level = 0) {
+    const String SPACES = "  .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   . ";
+
+    log::debug("%.*s%s: %d.", recursion_level * 4, SPACES, #type.nameof == "" ? "anonymous field" : #type.nameof, #type.sizeof);
+
+    $foreach ($field : #type.membersof)
+        $if $field.nameof == "":
+            @print_type_tree($field, recursion_level + 1);
+        $else
+            log::debug("%.*s%s: %d", (recursion_level+1) * 4, SPACES, $field.nameof, $field.sizeof);
+        $endif
+    $endforeach
+}
