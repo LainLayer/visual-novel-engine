@@ -90,10 +90,7 @@ fn bool apply_instruction(Instruction inst) {
     InstructionIndex old_instruction_pointer = instruction_pointer;
     bool no_push = false;
 
-    ReverseInstruction reverse;
-
-    reverse.blocking         = inst.blocking;
-    reverse.instruction_type = inst.instruction_type;
+    ReverseInstruction reverse = { .previous = inst };
 
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
@@ -129,14 +126,14 @@ fn bool apply_instruction(Instruction inst) {
         instruction_pointer += 1;
     case InstructionType.ANIMATE:
         reverse.animation_index = common::current_animation;
-        common::current_animation        = inst.animation_index;
+        common::current_animation = inst.animation_index;
 
         (&animation::animation_list[inst.animation_index]).reset();
 
         instruction_pointer += 1;
     case InstructionType.BACKGROUND:
         reverse.background_index = common::current_background;
-        common::current_background        = inst.background_index;
+        common::current_background = inst.background_index;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_FACE:
@@ -231,9 +228,9 @@ fn void step_back() {
             (&animation::animation_list[inst.animation_index]).reset();
             animation::animation_list[inst.animation_index].apply();
 
-            common::current_animation = inst.animation_index;
-
             (&animation::animation_list[common::current_animation]).reset();
+
+            common::current_animation = inst.animation_index;
 
         case InstructionType.BACKGROUND:
             common::current_background = inst.background_index;
@@ -314,6 +311,35 @@ fn void debug_tab() {
             }
             imgui::end_table();
         }
+
         imgui::end_tab_item();
     }
+
+    if(imgui::begin_tab_item("Instruction History")) {
+
+        if(imgui::begin_table("Instruction History Table", 2, imgui::TABLE_ROWBG | imgui::TABLE_BORDERS | imgui::TABLE_SCROLLY | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
+
+            imgui::table_setup_column("Index");
+            imgui::table_setup_column("Instruction Type");
+
+            imgui::table_headers_row();
+
+            for(InstructionIndex i = 0; i < instruction_history.len(); i++) {
+                @pool() {
+                    imgui::table_next_row(0, 0);
+
+                    imgui::table_set_column_index(0);
+                        imgui::text(string::tformat_zstr("%d", i));
+
+                    imgui::table_set_column_index(1);
+                        imgui::text(string::tformat_zstr("%s", instruction_history[i].instruction_type));
+
+                };
+            }
+            imgui::end_table();
+        }
+
+        imgui::end_tab_item();
+    }
+
 }

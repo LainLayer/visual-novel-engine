@@ -18,41 +18,6 @@ flag other_flag   int  123;
 flag other_flag_a int  0;
 flag other_flag_b int  11;
 
-scene test_scene "Scene for testing new feature" {
-    background warehouse;
-
-    spawn nika normal 0 150 right;
-
-    nika "Hello!";
-
-    sequence {
-        slide nika 0 150 800 150 1;
-        turn  nika left;
-    }
-
-    nika "Welcome to this epic demo of my game";
-
-    slide nika 800 150 400 150 2;
-
-    nika "We have cool animations!";
-
-    hide textbox;
-
-    sequence {
-        turn nika right;
-        pause 1;
-        turn nika left;
-    }
-
-    block;
-
-    show textbox;
-
-    nika "We can also hide the textbox!";
-
-    end;
-}
-
 scene first_scene "My first epic scene" {
 
     background warehouse;
@@ -138,5 +103,40 @@ scene second_scene "random texxt" {
 
 scene third_scene "based epic" {
     say "inside third scene";
+    end;
+}
+
+scene test_scene "Scene for testing new feature" {
+    background warehouse;
+
+    spawn nika normal 0 150 right;
+
+    nika "Hello!";
+
+    sequence {
+        slide nika 0 150 800 150 1;
+        turn  nika left;
+    }
+
+    nika "Welcome to this epic demo of my game";
+
+    slide nika 800 150 400 150 2;
+
+    nika "We have cool animations!";
+
+    hide textbox;
+
+    sequence {
+        turn nika right;
+        pause 1;
+        turn nika left;
+    }
+
+    block;
+
+    show textbox;
+
+    nika "We can also hide the textbox!";
+
     end;
 }
