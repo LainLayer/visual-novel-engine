@@ -16,21 +16,19 @@ make
 ## TODO
 
 ### high
-- [ ] Command to turn textbox on and off
-- [ ] Custom build system using wren https://wren.io/
-- [ ] Add `block` keyword that will block without doing anything.
-
-### medium
 - [ ] Overlay over the game and ability to animate it
 - [ ] Implement more interpolators, and add some form of syntax for them.
+- [ ] sound effects, fade audio in and out.
+
+### medium
+- [ ] Custom build system using wren https://wren.io/
 - [ ] Apply passive effects onto sprites.
 - [ ] Implement player choices (BIG)
-- [ ] sound effects, fade audio in and out.
 - [ ] Load custom fonts from chickenmilk.
+- [ ] Dialog history menu where you can scroll through all previously spoken lines.
 
 ### low
 - [ ] Refactor text displaying system to duplicate strings from the file and store them separetely, then free the file contents.
-- [ ] Dialog history menu where you can scroll through all previously spoken lines.
 - [ ] Main menu.
 - [ ] Save Game state.
 - [ ] Custom menus from inside chickenmilk.
@@ -42,6 +40,8 @@ make
 
 ## Done
 
+- [X] Command to turn textbox on and off
+- [X] Add `block` keyword that will block without doing anything.
 - [X] Implement saying text as characters, i.e `bob "Hello!"`.
 - [X] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
 - [X] Refactor big imgui chunk of code into its own module and put it behind a keybind
