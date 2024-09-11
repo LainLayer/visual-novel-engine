@@ -969,14 +969,8 @@ fn void compile_file(String path) {
         }
     }
 
-    for(usz i = 0; i < vm::instructions.size; i++) {
-        if(vm::instructions[i].instruction_type == InstructionType.GOTO_LABEL) {
-
-            // @cleanup workaround for https://github.com/c3lang/c3c/issues/1357
-            // change to one line when this issue is fixed.
-            Instruction* goto_instruction   = &vm::instructions[i];
-            goto_instruction.label_to_go_to = labels[vm::instructions[i].scene_index];
-        }
+    foreach(&instruction : vm::instructions) {
+        if(instruction.instruction_type == InstructionType.GOTO_LABEL) instruction.label_to_go_to = labels[instruction.scene_index];
     }
 
 }
