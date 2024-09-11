@@ -17,8 +17,6 @@ make
 
 ### high
 - [ ] Command to turn textbox on and off
-- [ ] Implement saying text as characters, i.e `bob "Hello!"`.
-- [ ] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
 - [ ] Custom build system using wren https://wren.io/
 - [ ] Add `block` keyword that will block without doing anything.
 
@@ -44,6 +42,8 @@ make
 
 ## Done
 
+- [X] Implement saying text as characters, i.e `bob "Hello!"`.
+- [X] Refactor `vm::Instruction` to store only 1 piece of information, instead of 2. They are never needed at the same time.
 - [X] Refactor big imgui chunk of code into its own module and put it behind a keybind
 - [X] Playing music
 - [X] Logging module.

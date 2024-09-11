@@ -35,15 +35,11 @@ struct Instruction {
 
     bool blocking;
 
-    InstructionIndex previous_instruction_pointer;
-
     union {
         /* SHOW_TEXT */
         struct {
             char[] text_to_show;
             char[] said_by;
-            char[] previously_shown_text;
-            char[] previously_said_by;
         }
 
         /* GOTO_LABEL */
@@ -56,68 +52,47 @@ struct Instruction {
             CharacterIndex character_index;
 
             union {
-                /* CHARACTER_VISIBILITY_SET */
-                struct {
-                    bool   set_visibility_to;
-                    bool   previous_visibility;
-                }
-
-                /* CHARACTER_POSITION */
-                struct {
-                    Vector2 set_position_to;
-                    Vector2 previous_position;
-                }
-
-                /* CHARACTER_EMOTE */
-                struct {
-                    char[] set_emotion_to;
-                    char[] previous_emotion;
-                }
-
-                /* CHARACTER_FACE */
-                struct {
-                    Direction direction_to_face;
-                    Direction previous_direction;
-                }
+                bool      set_visibility_to; /* CHARACTER_VISIBILITY_SET */
+                Vector2   set_position_to;   /* CHARACTER_POSITION       */
+                char[]    set_emotion_to;    /* CHARACTER_EMOTE          */
+                Direction direction_to_face; /* CHARACTER_FACE           */
             }
         }
 
-        /* ANIMATE */
-        struct {
-            AnimationIndex animation_index;
-            AnimationIndex previous_animation_index;
-        }
+        AnimationIndex  animation_index;  /* ANIMATE                */
+        SpriteDataIndex background_index; /* BACKGROUND             */
+        MusicDataIndex  music_index;      /* PLAY_MUSIC, STOP_MUSIC */
 
-        /* BACKGROUND */
-        struct {
-            SpriteDataIndex background_index;
-            SpriteDataIndex previous_background_index;
-        }
-
-        /* PLAY_MUSIC, STOP_MUSIC */
-        struct {
-            MusicDataIndex music_index;
-            MusicDataIndex previous_music_index;
-        }
-
-        /* END_SCENARIO */
-        // nothing needed
+        /* END_SCENARIO - nothing needed */
     }
 }
 
+struct ReverseInstruction {
+    inline Instruction previous;
+    InstructionIndex   previous_instruction_pointer;
+}
 
-InstructionIndex    instruction_pointer;
-List(<Instruction>) instructions;
-List(<Instruction>) instruction_history;
+def InstructionList        = List(<Instruction>);
+def ReverseInstructionList = List(<ReverseInstruction>);
+
+InstructionIndex       instruction_pointer;
+InstructionList        instructions;
+ReverseInstructionList instruction_history;
 
 fn bool apply_instruction(Instruction inst) {
 
     InstructionIndex old_instruction_pointer = instruction_pointer;
     bool no_push = false;
+
+    ReverseInstruction reverse;
+
+    reverse.blocking         = inst.blocking;
+    reverse.instruction_type = inst.instruction_type;
+
     switch(inst.instruction_type) {
     case InstructionType.SHOW_TEXT:
-        inst.previously_shown_text = common::text.text;
-        inst.previously_said_by    = common::text.said_by;
+        reverse.text_to_show = common::text.text;
+        reverse.said_by      = common::text.said_by;
 
         common::text.text    = inst.text_to_show;
         common::text.said_by = inst.said_by;
@@ -127,40 +102,41 @@ fn bool apply_instruction(Instruction inst) {
     case InstructionType.GOTO_LABEL:
         instruction_pointer = inst.label_to_go_to;
     case InstructionType.CHARACTER_VISIBILITY_SET:
-        inst.previous_visibility = common::characters[inst.character_index].visible;
+        reverse.set_visibility_to = common::characters[inst.character_index].visible;
         (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
-        inst.previous_position = common::characters[inst.character_index].position;
+        reverse.set_position_to = common::characters[inst.character_index].position;
         (&common::characters[inst.character_index]).position = inst.set_position_to;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_EMOTE:
-        inst.previous_emotion = common::characters[inst.character_index].current_emotion;
+        reverse.set_emotion_to = common::characters[inst.character_index].current_emotion;
         (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
 
         instruction_pointer += 1;
     case InstructionType.ANIMATE:
-        inst.previous_animation_index = common::current_animation;
-        common::current_animation     = inst.animation_index;
+        reverse.animation_index = common::current_animation;
+        common::current_animation        = inst.animation_index;
 
         (&animation::animation_list[inst.animation_index]).reset();
 
         instruction_pointer += 1;
     case InstructionType.BACKGROUND:
-        inst.previous_background_index = common::current_background;
-        common::current_background     = inst.background_index;
+        reverse.background_index = common::current_background;
+        common::current_background        = inst.background_index;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_FACE:
-        inst.previous_direction = common::characters[inst.character_index].direction;
+        reverse.direction_to_face = common::characters[inst.character_index].direction;
         (&common::characters[inst.character_index]).direction = inst.direction_to_face;
 
         instruction_pointer += 1;
     case InstructionType.PLAY_MUSIC:
         log::debug("Playing music track %s", inst.music_index);
-        inst.previous_music_index = common::current_music;
+
+        reverse.music_index = common::current_music;
         if(common::current_music != common::NO_MUSIC) {
             log::debug("Stopping previous music track - %s", common::current_music);
             raylib::stop_music_stream(common::music_data_list[common::current_music].music);
@@ -173,7 +149,8 @@ fn bool apply_instruction(Instruction inst) {
 
         instruction_pointer += 1;
     case InstructionType.STOP_MUSIC:
-        inst.previous_music_index = common::current_music;
+        reverse.music_index = common::current_music;
+
         if(common::current_music != common::NO_MUSIC) {
             raylib::stop_music_stream(common::music_data_list[common::current_music].music);
         }
@@ -182,8 +159,8 @@ fn bool apply_instruction(Instruction inst) {
 
         instruction_pointer += 1;
     case InstructionType.END_SCENARIO:
-        inst.previously_shown_text = common::text.text;
-        inst.previously_said_by    = common::text.said_by;
+        reverse.text_to_show = common::text.text;
+        reverse.said_by      = common::text.said_by;
 
         common::text.text    = "END.";
         common::text.step    = 0;
@@ -191,8 +168,8 @@ fn bool apply_instruction(Instruction inst) {
 
         no_push = (instruction_history[^1].instruction_type == InstructionType.END_SCENARIO);
     }
-    inst.previous_instruction_pointer = old_instruction_pointer;
-    if(!no_push) instruction_history.push(inst);
+    reverse.previous_instruction_pointer = old_instruction_pointer;
+    if(!no_push) instruction_history.push(reverse);
 
     return inst.blocking;
 }
@@ -227,50 +204,51 @@ fn void step_back() {
     need_to_scroll_instruction_table = true;
 
     do {
-        Instruction inst = instruction_history.pop()!!;
+        ReverseInstruction reverse_inst = instruction_history.pop()!!;
+        Instruction inst = reverse_inst.previous;
 
         switch(inst.instruction_type) {
         case InstructionType.SHOW_TEXT:
         case InstructionType.END_SCENARIO:
-            common::text.text    = inst.previously_shown_text;
-            common::text.said_by = inst.previously_said_by;
+            common::text.text    = inst.text_to_show;
+            common::text.said_by = inst.said_by;
 
         case InstructionType.ANIMATE:
             (&animation::animation_list[inst.animation_index]).reset();
             animation::animation_list[inst.animation_index].apply();
 
-            common::current_animation = inst.previous_animation_index;
+            common::current_animation = inst.animation_index;
 
             (&animation::animation_list[common::current_animation]).reset();
 
         case InstructionType.BACKGROUND:
-            common::current_background = inst.previous_background_index;
+            common::current_background = inst.background_index;
 
         case InstructionType.PLAY_MUSIC:
             if(common::current_music != common::NO_MUSIC) {
                 raylib::stop_music_stream(common::music_data_list[common::current_music].music);
             }
 
-            common::current_music = inst.previous_music_index;
+            common::current_music = inst.music_index;
 
             if(common::current_music != common::NO_MUSIC) {
                 raylib::play_music_stream(common::music_data_list[common::current_music].music);
             }
 
         case InstructionType.STOP_MUSIC:
-            common::current_music = inst.previous_music_index;
+            common::current_music = inst.music_index;
 
             if(common::current_music != common::NO_MUSIC) {
                 raylib::play_music_stream(common::music_data_list[common::current_music].music);
             }
 
-        case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.previous_visibility;
-        case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.previous_position;
-        case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.previous_emotion;
-        case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.previous_direction;
+        case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.set_visibility_to;
+        case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.set_position_to;
+        case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;
+        case InstructionType.CHARACTER_FACE:           (&common::characters[inst.character_index]).direction       = inst.direction_to_face;
         case InstructionType.GOTO_LABEL:               break;
         }
-        instruction_pointer = inst.previous_instruction_pointer;
+        instruction_pointer = reverse_inst.previous_instruction_pointer;
     } while(!instruction_history[^1].blocking);
 }
 
