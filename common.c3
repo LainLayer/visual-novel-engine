@@ -127,6 +127,8 @@ struct TextAnimation {
     char[] said_by;
 }
 
+bool show_text_box = true;
+
 TextAnimation text = {
     .duration = 0.35,
     .step     = 0.0,

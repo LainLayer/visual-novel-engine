@@ -22,6 +22,8 @@ enum InstructionType : char {
     CHARACTER_EMOTE,
     CHARACTER_FACE,
 
+    TEXTBOX_VISIBILITY_SET,
+
     BACKGROUND,
 
     ANIMATE,
@@ -53,6 +55,8 @@ struct Instruction {
 
             union {
                 bool      set_visibility_to; /* CHARACTER_VISIBILITY_SET */
+                                             /* TEXTBOX_VISIBILITY_SET   */
+
                 Vector2   set_position_to;   /* CHARACTER_POSITION       */
                 char[]    set_emotion_to;    /* CHARACTER_EMOTE          */
                 Direction direction_to_face; /* CHARACTER_FACE           */
@@ -104,6 +108,11 @@ fn bool apply_instruction(Instruction inst) {
     case InstructionType.CHARACTER_VISIBILITY_SET:
         reverse.set_visibility_to = common::characters[inst.character_index].visible;
         (&common::characters[inst.character_index]).visible = inst.set_visibility_to;
+
+        instruction_pointer += 1;
+    case InstructionType.TEXTBOX_VISIBILITY_SET:
+        reverse.set_visibility_to = common::show_text_box;
+        common::show_text_box = inst.set_visibility_to;
 
         instruction_pointer += 1;
     case InstructionType.CHARACTER_POSITION:
@@ -241,7 +250,7 @@ fn void step_back() {
             if(common::current_music != common::NO_MUSIC) {
                 raylib::play_music_stream(common::music_data_list[common::current_music].music);
             }
-
+        case InstructionType.TEXTBOX_VISIBILITY_SET:   common::show_text_box                                       = inst.set_visibility_to;
         case InstructionType.CHARACTER_VISIBILITY_SET: (&common::characters[inst.character_index]).visible         = inst.set_visibility_to;
         case InstructionType.CHARACTER_POSITION:       (&common::characters[inst.character_index]).position        = inst.set_position_to;
         case InstructionType.CHARACTER_EMOTE:          (&common::characters[inst.character_index]).current_emotion = inst.set_emotion_to;

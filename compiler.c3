@@ -120,6 +120,8 @@ enum ActionType : char {
     EMOTE,
     FACE,
 
+    SET_TEXTBOX_VISIBILITY,
+
     SET_BACKGROUND,
 
     ANIMATION,
@@ -554,20 +556,36 @@ fn void parse_scene() {
             expect(TokenType.SEMICOLON);
 
         case TokenType.KEYWORD_SHOW:
-            action.action_type    = ActionType.SET_VISIBILITY;
-            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
-            action.visibility     = true;
 
-            if(!character_exists(action.character_name)) die("Trying to show non-existent character '%s'", action.character_name);
+            char[] target = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(character_exists(target)) {
+                action.action_type    = ActionType.SET_VISIBILITY;
+                action.visibility     = true;
+                action.character_name = target;
+            } else if(target == "textbox") {
+                action.action_type    = ActionType.SET_TEXTBOX_VISIBILITY;
+                action.visibility     = true;
+            } else {
+                die("Trying to show non-existent character '%s'", action.character_name);
+            }
 
             expect(TokenType.SEMICOLON);
 
         case TokenType.KEYWORD_HIDE:
-            action.action_type    = ActionType.SET_VISIBILITY;
-            action.character_name = expect(TokenType.IDENTIFIER).identifier_value;
-            action.visibility     = false;
 
-            if(!character_exists(action.character_name)) die("Trying to hide non-existent character '%s'", action.character_name);
+            char[] target = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(character_exists(target)) {
+                action.action_type    = ActionType.SET_VISIBILITY;
+                action.visibility     = false;
+                action.character_name = target;
+            } else if(target == "textbox") {
+                action.action_type    = ActionType.SET_TEXTBOX_VISIBILITY;
+                action.visibility     = false;
+            } else {
+                die("Trying to hide non-existent character '%s'", action.character_name);
+            }
 
             expect(TokenType.SEMICOLON);
 
@@ -880,6 +898,12 @@ fn void compile_file(String path) {
                 vm::instructions.push({
                     .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
                     .character_index   = common::character_name_table[action.character_name]!!,
+                    .set_visibility_to = action.visibility,
+                    .blocking          = false,
+                });
+            case SET_TEXTBOX_VISIBILITY:
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.TEXTBOX_VISIBILITY_SET,
                     .set_visibility_to = action.visibility,
                     .blocking          = false,
                 });

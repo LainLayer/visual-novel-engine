@@ -36,6 +36,20 @@ scene test_scene "Scene for testing new feature" {
 
     nika "We have cool animations!";
 
+    hide textbox;
+
+    sequence {
+        turn nika right;
+        pause 1;
+        turn nika left;
+    }
+
+    say "...";
+
+    show textbox;
+
+    nika "We can also hide the textbox!";
+
     end;
 }
 

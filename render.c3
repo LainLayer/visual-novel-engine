@@ -426,7 +426,7 @@ fn void main() {
                     }
                 }
 
-                common::text.render();
+                if(common::show_text_box) common::text.render();
             raylib::end_texture_mode();
 
             raylib::draw_texture_pro(
