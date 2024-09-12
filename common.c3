@@ -102,7 +102,9 @@ macro Character* get_character_by_name(char[] name) {
 
 bool animaton_enabled = true;
 
-AnimationIndex current_animation = 0;
+const AnimationIndex IDLE_ANIMATION = 0;
+
+AnimationIndex current_animation = IDLE_ANIMATION;
 
 const SpriteDataIndex INVALID_BACKGROUND = ~0;
 SpriteDataIndex current_background = INVALID_BACKGROUND;

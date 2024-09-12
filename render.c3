@@ -250,6 +250,7 @@ fn void debug_system() {
         imgui::end_tab_item();
     }
 
+    animation::animation_list_debug_tab();
 
     vm::debug_tab();
 

@@ -195,6 +195,86 @@ fn void Animation.apply(animation) {
     }
 }
 
+fn void animation_list_debug_tab() {
+    if(imgui::begin_tab_item("Animation List")) {
+        if(imgui::begin_table("Animation List table", 4, imgui::TABLE_BORDERS | imgui::TABLE_ROWBG | imgui::TABLE_SIZINGFIXEDFIT, { 0, 0 }, 0)) {
+
+            imgui::table_setup_column("Index");
+            imgui::table_setup_column("Animation Type");
+            imgui::table_setup_column("Details");
+            imgui::table_setup_column("Step");
+
+            imgui::table_headers_row();
+
+            AnimationIndex index = 0;
+            foreach(&animation : animation_list) {
+                imgui::table_next_row(0, 0);
+
+                if(index == common::current_animation) {
+                    for(CInt i = 0; i < 4; i++) imgui::table_set_background_color(3, Color { 25, 75, 25, 255}, i);
+                }
+
+                @pool() {
+
+                    imgui::table_set_column_index(0);
+                    imgui::text(string::tformat_zstr("%d", index));
+
+                    imgui::table_set_column_index(1);
+                    imgui::text(string::tformat_zstr("%s", animation.animation_type));
+
+                    imgui::table_set_column_index(2);
+                    switch(animation.animation_type) {
+                    case SEQUENCE:
+                    case GROUP:
+                        imgui::text(string::tformat_zstr("animations: %s", animation.animations));
+
+                    case LOOP:
+                        imgui::text(string::tformat_zstr("animation: %s", animation.animation_to_loop));
+
+                    case SLIDE:
+                        imgui::text(string::tformat_zstr(
+                            "character: %s, slide from %d,%d to %d,%d, over %.2f seconds",
+                            common::characters[animation.character_index].name,
+                            animation.slide_from.x,
+                            animation.slide_from.y,
+                            animation.slide_to.x,
+                            animation.slide_to.y,
+                            animation.duration
+
+                        ));
+
+                        imgui::table_set_column_index(3);
+
+                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+
+                    case PAUSE:
+                        imgui::text(string::tformat_zstr("duration: %d", animation.duration));
+
+                        imgui::table_set_column_index(3);
+                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+
+                    case TURN:
+                        imgui::text(string::tformat_zstr(
+                            "character: %s, turn %s",
+                            common::characters[animation.character_index].name,
+                            animation.turn_to.value
+                        ));
+
+                        imgui::table_set_column_index(3);
+                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+
+                    case IDLE:
+                    }
+                };
+
+                index++;
+            }
+            imgui::end_table();
+        }
+        imgui::end_tab_item();
+    }
+}
+
 fn void Animation.imgui_debug_visualize(&animation, AnimationIndex list_index) {
     @pool() {
         if(imgui::tree_node(string::tformat_zstr("%s##%s", animation.animation_type, list_index))) {

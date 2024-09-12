@@ -863,6 +863,11 @@ fn void compile_file(String path) {
                     .said_by          = action.said_by,
                     .blocking         = true,
                 });
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.ANIMATE,
+                    .animation_index   = common::IDLE_ANIMATION,
+                    .blocking          = false,
+                });
             case GOTO:
                 vm::instructions.push({
                     .instruction_type = InstructionType.GOTO_LABEL,
@@ -964,6 +969,11 @@ fn void compile_file(String path) {
                 vm::instructions.push({
                     .instruction_type  = InstructionType.BLOCK,
                     .blocking          = true,
+                });
+                vm::instructions.push({
+                    .instruction_type  = InstructionType.ANIMATE,
+                    .animation_index   = common::IDLE_ANIMATION,
+                    .blocking          = false,
                 });
             }
         }

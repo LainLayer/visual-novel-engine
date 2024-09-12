@@ -18,7 +18,6 @@ flag other_flag   int  123;
 flag other_flag_a int  0;
 flag other_flag_b int  11;
 
-
 scene test_scene "Scene for testing new feature" {
     background warehouse;
 
@@ -38,6 +37,8 @@ scene test_scene "Scene for testing new feature" {
     nika "We have cool animations!";
 
     hide textbox;
+
+    face nika left;
 
     sequence {
         turn nika right;
@@ -126,6 +127,8 @@ scene first_scene "My first epic scene" {
     }
 
     say "jumping up and down!";
+
+    say "testing text";
 
     hide nikab;
 

@@ -106,3 +106,6 @@ extern fn void table_setup_column(ZString   label,
                                   CInt   user_id = 0)        @extern("igTableSetupColumn");
 extern fn ImGuiWantsSomething get_imgui_wants(void* io)      @extern("get_imgui_wants");
 extern fn void* get_io()                                     @extern("igGetIO");
+extern fn void table_set_background_color(CInt target,
+                                          char[4] color,
+                                          CInt  column_n=-1) @extern("igTableSetBgColor");
