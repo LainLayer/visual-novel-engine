@@ -9,6 +9,7 @@ import raylib;
 import animation;
 import imgui;
 import log;
+import compiler;
 
 def InstructionIndex = usz;
 
@@ -30,6 +31,8 @@ enum InstructionType : char {
 
     PLAY_MUSIC,
     STOP_MUSIC,
+
+    CONTINUE_IF_TRUE,
 
     BLOCK,
 }
@@ -68,6 +71,12 @@ struct Instruction {
         AnimationIndex  animation_index;  /* ANIMATE                */
         SpriteDataIndex background_index; /* BACKGROUND             */
         MusicDataIndex  music_index;      /* PLAY_MUSIC, STOP_MUSIC */
+
+        /* CONTINUE_IF_TRUE */
+        struct {
+            FlagIndex flag_index;
+            uint      otherwise_jump;
+        }
 
         /* END_SCENARIO - nothing needed */
     }
@@ -169,6 +178,13 @@ fn bool apply_instruction(Instruction inst) {
     case InstructionType.BLOCK:
 
         instruction_pointer += 1;
+    case InstructionType.CONTINUE_IF_TRUE:
+        if(compiler::flags[inst.flag_index].boolean_value) {
+            instruction_pointer += 1;
+        } else {
+            instruction_pointer += inst.otherwise_jump;
+        }
+
     case InstructionType.END_SCENARIO:
         reverse.text_to_show = common::text.text;
         reverse.said_by      = common::text.said_by;
@@ -257,6 +273,7 @@ fn void step_back() {
         case InstructionType.CHARACTER_FACE:           common::characters[inst.character_index].direction       = inst.direction_to_face;
         case InstructionType.GOTO_LABEL:               break;
         case InstructionType.BLOCK:                    break;
+        case InstructionType.CONTINUE_IF_TRUE:         break;
         }
         instruction_pointer = reverse_inst.previous_instruction_pointer;
     } while(!instruction_history[^1].blocking);

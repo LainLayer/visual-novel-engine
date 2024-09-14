@@ -13,10 +13,26 @@ character nikab "test_assets/illyustraciya_bez_nazvaniya_2.png" normal left
                 "test_assets/illyustraciya_bez_nazvaniya_1.png" happy  left
                 "test_assets/illyustraciya_bez_nazvaniya.png"   shy    left;
 
-flag my_flag      bool false;
+flag my_flag      bool true;
 flag other_flag   int  123;
 flag other_flag_a int  0;
 flag other_flag_b int  11;
+
+scene bool_test "Scene for testing booleans" {
+    background warehouse;
+
+    spawn nika normal 0 150 right;
+
+    nika "Hello!";
+
+    if my_flag {
+        nika "Second text";
+    }
+
+    nika "Third text";
+
+    end;
+}
 
 scene test_scene "Scene for testing new feature" {
     background warehouse;

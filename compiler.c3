@@ -10,6 +10,7 @@ import common;
 import vm;
 import raylib;
 import animation;
+import log;
 
 def ActionList           = List(<Action>);
 def FlagList             = List(<Flag>);
@@ -17,6 +18,8 @@ def CharSliceList        = List(<char[]>);
 def SceneList            = List(<Scene>);
 def TokenList            = List(<Token>);
 def InstructionIndexList = List(<InstructionIndex>);
+
+def FlagIndex = uint;
 
 enum TokenType : char {
     INVALID_TOKEN,
@@ -69,6 +72,12 @@ enum TokenType : char {
 
     KEYWORD_BLOCK,
 
+    KEYWORD_IF,
+    KEYWORD_ELSE,
+    KEYWORD_NOT,
+    KEYWORD_AND,
+    KEYWORD_OR,
+
     KEYWORD_END,
 
     EOF
@@ -112,6 +121,20 @@ struct Token {
     }
 }
 
+struct BooleanExpressionNode {
+    bool is_leaf;
+    union {
+        BooleanExpression* expression;
+        Token              token;
+    }
+}
+
+struct BooleanExpression {
+    bool is_unary;
+    BooleanExpressionNode left;
+    BooleanExpressionNode right;
+}
+
 enum ActionType : char {
     SAY,
     GOTO,
@@ -132,6 +155,8 @@ enum ActionType : char {
     STOP_MUSIC,
 
     BLOCK,
+
+    CONDITIONAL,
 
     END,
 }
@@ -158,13 +183,18 @@ struct Action {
         AnimationIndex  animation;        /* ANIMATION              */
         SpriteDataIndex background_index; /* SET_BACKGROUND         */
         MusicDataIndex  music_index;      /* PLAY_MUSIC, STOP_MUSIC */
+
+        struct { /* CONDITIONAL */
+            ActionList condition_block;
+            char[]     flag_name;
+        }
     }
 }
 
 struct Scene {
-    char[]         scene_id;
-    char[]         description;
-    ActionList      actions;
+    char[]     scene_id;
+    char[]     description;
+    ActionList actions;
 }
 
 uint          tokenizing_cursor;
@@ -194,6 +224,18 @@ fn bool has_flag(char[] name) @inline {
     }
 
     return false;
+}
+
+fault CompilerFault {
+    FLAG_NOT_FOUND,
+}
+
+fn FlagIndex! get_flag_index(char[] name) @inline {
+    for(FlagIndex i = 0; i < flags.len(); i++) {
+        if (flags[i].name == name) return i;
+    }
+
+    return CompilerFault.FLAG_NOT_FOUND?;
 }
 
 fn bool is_whitespace(char c) @inline { return c == ' ' || c == '\n' || c == '\t'; }
@@ -269,9 +311,14 @@ fn Token parse_identifier() {
     case "move":       result.token_type = TokenType.KEYWORD_MOVE;
     case "goto":       result.token_type = TokenType.KEYWORD_GOTO;
     case "face":       result.token_type = TokenType.KEYWORD_FACE;
+    case "else":       result.token_type = TokenType.KEYWORD_ELSE;
     case "turn":       result.token_type = TokenType.KEYWORD_TURN;
     case "say":        result.token_type = TokenType.KEYWORD_SAY;
     case "end":        result.token_type = TokenType.KEYWORD_END;
+    case "and":        result.token_type = TokenType.KEYWORD_AND;
+    case "not":        result.token_type = TokenType.KEYWORD_NOT;
+    case "or":         result.token_type = TokenType.KEYWORD_OR;
+    case "if":         result.token_type = TokenType.KEYWORD_IF;
 
     /* Music Controls*/
     case "play_music": result.token_type = TokenType.KEYWORD_PLAY_MUSIC;
@@ -513,12 +560,20 @@ fn void parse_scene() {
 
     scene.scene_id    = expect(TokenType.IDENTIFIER).identifier_value;
     scene.description = expect(TokenType.STRING_LITERAL).string_value;
+
+    parse_statement_block(&scene.actions);
+
+    scenes.push(scene);
+}
+
+fn void parse_statement_block(ActionList* actions) {
+
     expect(TokenType.OPEN_BRACKET);
 
     bump_lexer();
 
     if(current_token.token_type == TokenType.CLOSE_BRACKET) {
-        die("Empty scenes are not allowed");
+        die("Empty blocks are not allowed");
     }
 
     while(current_token.token_type != TokenType.CLOSE_BRACKET) {
@@ -691,17 +746,29 @@ fn void parse_scene() {
             action.said_by     = character_name;
 
             expect(TokenType.SEMICOLON);
+        case TokenType.KEYWORD_IF:
+            action.action_type = ActionType.CONDITIONAL;
+            action.flag_name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!has_flag(action.flag_name)) die("Unknown flag name '%s'", action.flag_name);
+
+            Flag flag = flags[get_flag_index(action.flag_name)!!];
+            if(flag.flag_type != TypeType.BOOLEAN) {
+                die("If statements can only be used on boolean flags, the flag '%s' is of type %s", action.flag_name, flag.flag_type);
+            }
+
+            parse_statement_block(&action.condition_block);
+
         default:
             die("unimplemented action %s", current_token.token_type);
         }
 
-        scene.actions.push(action);
+        actions.push(action);
 
         bump_lexer();
     }
-
-    scenes.push(scene);
 }
+
 
 fn void parse_flag() {
     Flag flag;
@@ -815,6 +882,155 @@ fn usz get_index_of_scene_with_id(char[] id) {
     unreachable();
 }
 
+fn uint ActionList.emit(actions) {
+    uint start_instruction_count = (uint)vm::instructions.len();
+
+    foreach(Action action : actions) {
+        switch(action.action_type) {
+        case SAY:
+            vm::instructions.push({
+                .instruction_type = InstructionType.SHOW_TEXT,
+                .text_to_show     = action.text_to_say,
+                .said_by          = action.said_by,
+                .blocking         = true,
+            });
+            vm::instructions.push({
+                .instruction_type  = InstructionType.ANIMATE,
+                .animation_index   = common::IDLE_ANIMATION,
+                .blocking          = false,
+            });
+        case GOTO:
+            vm::instructions.push({
+                .instruction_type = InstructionType.GOTO_LABEL,
+                .scene_index      = get_index_of_scene_with_id(action.scene_id),
+                .blocking         = false,
+            });
+        case END:
+            vm::instructions.push({
+                .instruction_type = InstructionType.END_SCENARIO,
+                .blocking         = true,
+            });
+        case SPAWN:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_visibility_to = true,
+                .blocking          = false,
+            });
+
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_POSITION,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_position_to   = action.position,
+                .blocking          = false,
+            });
+
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_EMOTE,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_emotion_to    = action.emotion_name,
+                .blocking          = false,
+            });
+
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_FACE,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .direction_to_face = action.direction,
+                .blocking          = false,
+            });
+        case SET_VISIBILITY:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_visibility_to = action.visibility,
+                .blocking          = false,
+            });
+        case SET_TEXTBOX_VISIBILITY:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.TEXTBOX_VISIBILITY_SET,
+                .set_visibility_to = action.visibility,
+                .blocking          = false,
+            });
+        case EMOTE:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_EMOTE,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_emotion_to    = action.emotion_name,
+                .blocking          = false,
+            });
+        case MOVE:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_POSITION,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .set_position_to   = action.position,
+                .blocking          = false,
+            });
+        case ANIMATION:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.ANIMATE,
+                .animation_index   = action.animation,
+                .blocking          = false,
+            });
+        case SET_BACKGROUND:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.BACKGROUND,
+                .background_index  = action.background_index,
+                .blocking          = false,
+            });
+        case FACE:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CHARACTER_FACE,
+                .character_index   = common::character_name_table[action.character_name]!!,
+                .direction_to_face = action.direction,
+                .blocking          = false,
+            });
+        case PLAY_MUSIC:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.PLAY_MUSIC,
+                .music_index       = action.music_index,
+                .blocking          = false,
+            });
+        case STOP_MUSIC:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.STOP_MUSIC,
+                .music_index       = action.music_index,
+                .blocking          = false,
+            });
+        case BLOCK:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.BLOCK,
+                .blocking          = true,
+            });
+            vm::instructions.push({
+                .instruction_type  = InstructionType.ANIMATE,
+                .animation_index   = common::IDLE_ANIMATION,
+                .blocking          = false,
+            });
+        case CONDITIONAL:
+            vm::instructions.push({
+                .instruction_type  = InstructionType.CONTINUE_IF_TRUE,
+                .flag_index        = get_flag_index(action.flag_name)!!,
+                .blocking          = false,
+            });
+
+            InstructionIndex emitted_instruction = vm::instructions.len() - 1;
+
+            uint emitted_in_block = action.condition_block.emit();
+
+            log::debug(
+                "start_instruction_count: %d, emitted_instruction: %d, emitted_in_block: %d",
+                start_instruction_count,
+                emitted_instruction,
+                emitted_in_block
+            );
+
+            vm::instructions[emitted_instruction].otherwise_jump = emitted_in_block + 1;
+        }
+    }
+
+    return (uint)vm::instructions.len() - start_instruction_count;
+}
+
 fn void compile_file(String path) {
 
     filename = path;
@@ -854,129 +1070,7 @@ fn void compile_file(String path) {
 
     foreach(Scene scene : scenes) {
         labels.push((InstructionIndex)vm::instructions.size);
-        foreach(Action action : scene.actions) {
-            switch(action.action_type) {
-            case SAY:
-                vm::instructions.push({
-                    .instruction_type = InstructionType.SHOW_TEXT,
-                    .text_to_show     = action.text_to_say,
-                    .said_by          = action.said_by,
-                    .blocking         = true,
-                });
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.ANIMATE,
-                    .animation_index   = common::IDLE_ANIMATION,
-                    .blocking          = false,
-                });
-            case GOTO:
-                vm::instructions.push({
-                    .instruction_type = InstructionType.GOTO_LABEL,
-                    .scene_index      = get_index_of_scene_with_id(action.scene_id),
-                    .blocking         = false,
-                });
-            case END:
-                vm::instructions.push({
-                    .instruction_type = InstructionType.END_SCENARIO,
-                    .blocking         = true,
-                });
-            case SPAWN:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_visibility_to = true,
-                    .blocking          = false,
-                });
-
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_POSITION,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_position_to   = action.position,
-                    .blocking          = false,
-                });
-
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_EMOTE,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_emotion_to    = action.emotion_name,
-                    .blocking          = false,
-                });
-
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_FACE,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .direction_to_face = action.direction,
-                    .blocking          = false,
-                });
-            case SET_VISIBILITY:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_VISIBILITY_SET,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_visibility_to = action.visibility,
-                    .blocking          = false,
-                });
-            case SET_TEXTBOX_VISIBILITY:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.TEXTBOX_VISIBILITY_SET,
-                    .set_visibility_to = action.visibility,
-                    .blocking          = false,
-                });
-            case EMOTE:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_EMOTE,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_emotion_to    = action.emotion_name,
-                    .blocking          = false,
-                });
-            case MOVE:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_POSITION,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .set_position_to   = action.position,
-                    .blocking          = false,
-                });
-            case ANIMATION:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.ANIMATE,
-                    .animation_index   = action.animation,
-                    .blocking          = false,
-                });
-            case SET_BACKGROUND:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.BACKGROUND,
-                    .background_index  = action.background_index,
-                    .blocking          = false,
-                });
-            case FACE:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.CHARACTER_FACE,
-                    .character_index   = common::character_name_table[action.character_name]!!,
-                    .direction_to_face = action.direction,
-                    .blocking          = false,
-                });
-            case PLAY_MUSIC:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.PLAY_MUSIC,
-                    .music_index       = action.music_index,
-                    .blocking          = false,
-                });
-            case STOP_MUSIC:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.STOP_MUSIC,
-                    .music_index       = action.music_index,
-                    .blocking          = false,
-                });
-            case BLOCK:
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.BLOCK,
-                    .blocking          = true,
-                });
-                vm::instructions.push({
-                    .instruction_type  = InstructionType.ANIMATE,
-                    .animation_index   = common::IDLE_ANIMATION,
-                    .blocking          = false,
-                });
-            }
-        }
+        scene.actions.emit();
     }
 
     foreach(&instruction : vm::instructions) {
