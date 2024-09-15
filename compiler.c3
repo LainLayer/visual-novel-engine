@@ -602,10 +602,13 @@ fn void parse_statement_block(ActionList* actions) {
 
         case TokenType.KEYWORD_SPAWN:
             action.action_type = ActionType.SPAWN;
-            char[] name    = expect(TokenType.IDENTIFIER).identifier_value;
+            char[] name = expect(TokenType.IDENTIFIER).identifier_value;
+
+            if(!character_exists(name)) die("Trying to spawn unknown character '%s'", name);
+
             char[] emotion = expect(TokenType.IDENTIFIER).identifier_value;
 
-            if(character_exists(name) && character_has_emotion(name, emotion)) {
+            if(character_has_emotion(name, emotion)) {
                 action.character_name = name;
                 action.emotion_name   = emotion;
                 action.position.x     = expect(TokenType.INTEGER_LITERAL).integer_value;
