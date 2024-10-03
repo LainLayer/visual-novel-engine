@@ -13,7 +13,7 @@ character nikab "test_assets/illyustraciya_bez_nazvaniya_2.png" normal left
                 "test_assets/illyustraciya_bez_nazvaniya_1.png" happy  left
                 "test_assets/illyustraciya_bez_nazvaniya.png"   shy    left;
 
-flag my_flag      bool true;
+flag my_flag      bool false;
 flag other_flag   int  123;
 flag other_flag_a int  0;
 flag other_flag_b int  11;
@@ -31,7 +31,7 @@ scene bool_test "Scene for testing booleans" {
 
     nika "Third text";
 
-    end;
+    goto first_scene;
 }
 
 scene test_scene "Scene for testing new feature" {
