@@ -283,6 +283,7 @@ fn void main() {
     compiler::compile_file("test.chickenmilk");
 
     common::@print_type_tree(Instruction);
+    common::@print_type_tree(Animation);
 
     log::set_raylib_tracelog_callback();
 
