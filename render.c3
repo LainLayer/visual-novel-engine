@@ -111,18 +111,21 @@ usz loaded_assets        = 0;
 fn void load_single_sprite_data(void* arg) {
     SpriteData* sprite_data = (SpriteData*) arg;
 
+    log::info("Loading image '%s'", sprite_data.filename);
+
     @pool() {
         sprite_data.image = raylib::load_image(string::tformat_zstr("%s", sprite_data.filename));
     };
 
     if(sprite_data.needs_flip) raylib::image_flip_horizontal(&sprite_data.image);
 
-    // log::info("Successfully loaded image %s", sprite_data.filename);
     loaded_assets++;
 }
 
 fn void load_single_music_data(void* arg) {
     MusicData* music_data = (MusicData*) arg;
+
+    log::info("Loading music '%s'", music_data.filename);
 
     @pool() {
         music_data.music = raylib::load_music_stream(string::tformat_zstr("%s", music_data.filename));
@@ -280,7 +283,7 @@ fn void main() {
     animation::init_animation_system();
     log::init();
 
-    compiler::compile_file("test.chickenmilk");
+    compiler::compile_file("./test_scenarios/000-basic.chickenmilk");
 
     common::@print_type_tree(Instruction);
     common::@print_type_tree(Animation);

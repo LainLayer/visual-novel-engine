@@ -45,8 +45,8 @@ struct Instruction {
     union {
         /* SHOW_TEXT */
         struct {
-            char[] text_to_show;
-            char[] said_by;
+            String text_to_show;
+            String said_by;
         }
 
         /* GOTO_LABEL */
@@ -63,7 +63,7 @@ struct Instruction {
                                              /* TEXTBOX_VISIBILITY_SET   */
 
                 Vector2   set_position_to;   /* CHARACTER_POSITION       */
-                char[]    set_emotion_to;    /* CHARACTER_EMOTE          */
+                String    set_emotion_to;    /* CHARACTER_EMOTE          */
                 Direction direction_to_face; /* CHARACTER_FACE           */
             }
         }

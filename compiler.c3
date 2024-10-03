@@ -14,7 +14,7 @@ import log;
 
 def ActionList           = List(<Action>);
 def FlagList             = List(<Flag>);
-def CharSliceList        = List(<char[]>);
+def StringList           = List(<String>);
 def SceneList            = List(<Scene>);
 def TokenList            = List(<Token>);
 def InstructionIndexList = List(<InstructionIndex>);
@@ -89,11 +89,11 @@ enum TypeType : char {
 }
 
 struct Flag {
-    char[]   name;
+    String   name;
     TypeType flag_type;
 
     union {
-        char[] string_value;
+        String string_value;
         int    integer_value;
         float  float_value;
         bool   boolean_value;
@@ -111,10 +111,10 @@ struct Token {
     uint      text_length;
 
     union {
-        char[]    string_value;
+        String    string_value;
         int       integer_value;
         float     float_value;
-        char[]    identifier_value;
+        String    identifier_value;
         bool      boolean_value;
         TypeType  type_value;
         Direction direction_value;
@@ -166,15 +166,15 @@ struct Action {
 
     union {
         struct {
-            char[] text_to_say; /* SAY   */
-            char[] said_by;     /* SAY   */
+            String text_to_say; /* SAY   */
+            String said_by;     /* SAY   */
         }
 
-        char[] scene_id;    /* GOTO  */
+        String scene_id;    /* GOTO  */
 
         struct {            /* SPAWN */
-            char[]    character_name;
-            char[]    emotion_name;   /* EMOTE          */
+            String    character_name;
+            String    emotion_name;   /* EMOTE          */
             Vector2   position;       /* MOVE           */
             bool      visibility;     /* SET_VISIBILITY */
             Direction direction;      /* FACE           */
@@ -186,39 +186,39 @@ struct Action {
 
         struct { /* CONDITIONAL */
             ActionList condition_block;
-            char[]     flag_name;
+            String     flag_name;
         }
     }
 }
 
 struct Scene {
-    char[]     scene_id;
-    char[]     description;
+    String     scene_id;
+    String     description;
     ActionList actions;
 }
 
-uint          tokenizing_cursor;
-Location      tokenizing_location;
-char[]        file_data;
-char[]        scenario_title;
-char[]        author;
-String        filename;
-FlagList      flags;
-CharSliceList languages;
-SceneList     scenes;
-TokenList     goto_promises;
-Token         current_token;
+Location   tokenizing_location;
+uint       tokenizing_cursor;
+String     file_data;
+String     scenario_title;
+String     author;
+String     filename;
+FlagList   flags;
+StringList languages;
+SceneList  scenes;
+TokenList  goto_promises;
+Token      current_token;
 
-macro bool character_exists(char[] name) {
+macro bool character_exists(String name) {
     return common::character_name_table.has_key(name);
 }
 
-macro bool character_has_emotion(char[] name, char[] emotion) {
+macro bool character_has_emotion(String name, String emotion) {
     return common::get_character_by_name(name)
                   .emotion_sprite_table.has_key(emotion);
 }
 
-fn bool has_flag(char[] name) @inline {
+fn bool has_flag(String name) @inline {
     foreach(Flag f : flags) {
         if (f.name == name) return true;
     }
@@ -230,7 +230,7 @@ fault CompilerFault {
     FLAG_NOT_FOUND,
 }
 
-fn FlagIndex! get_flag_index(char[] name) @inline {
+fn FlagIndex! get_flag_index(String name) @inline {
     for(FlagIndex i = 0; i < flags.len(); i++) {
         if (flags[i].name == name) return i;
     }
@@ -267,7 +267,7 @@ fn void! load_file(String path) {
     tokenizing_cursor   = 0;
     tokenizing_location = { 0, 0 };
     filename            = path;
-    file_data = io::file::load_new(path)!;
+    file_data = (String)io::file::load_new(path)!;
 }
 
 fn bool has_more_text() @inline { return tokenizing_cursor < file_data.len; }
@@ -331,7 +331,7 @@ fn Token parse_identifier() {
     case "left":       result.token_type = TokenType.DIRECTION_LITERAL; result.direction_value  = Direction.LEFT;
     case "bool":       result.token_type = TokenType.TYPE;              result.type_value       = TypeType.BOOLEAN;
     case "int" :       result.token_type = TokenType.TYPE;              result.type_value       = TypeType.INTEGER;
-    default:           result.token_type = TokenType.IDENTIFIER;        result.identifier_value = text;
+    default:           result.token_type = TokenType.IDENTIFIER;        result.identifier_value = (String)text;
     }
 
     return result;
@@ -367,7 +367,7 @@ fn Token parse_string_literal() {
             bump_tokenizer();
             result.text_length  = tokenizing_location.character - result.location.character;
             result.token_type   = TokenType.STRING_LITERAL;
-            result.string_value = file_data[(tokenizing_cursor-result.text_length+1)..tokenizing_cursor-2];
+            result.string_value = (String)file_data[(tokenizing_cursor-result.text_length+1)..tokenizing_cursor-2];
 
             return result;
         } else {
@@ -460,7 +460,7 @@ fn void parse_header() {
 fn void parse_animation(Animation* animation, uint recursion_level = 0) {
     switch(current_token.token_type) {
     case TokenType.KEYWORD_SLIDE:
-        char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+        String character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
         if(!character_exists(character_name)) die("Trying to slide animate non-existent character '%s'", character_name);
 
@@ -488,7 +488,7 @@ fn void parse_animation(Animation* animation, uint recursion_level = 0) {
     case TokenType.KEYWORD_TURN:
         if(recursion_level == 0) die("Turning characters outside of a group or sequence is pointless, use the `face` keyword.");
 
-        char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+        String character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
         if(!character_exists(character_name)) die("Trying to turn animate non-existent character '%s'", character_name);
 
@@ -602,11 +602,11 @@ fn void parse_statement_block(ActionList* actions) {
 
         case TokenType.KEYWORD_SPAWN:
             action.action_type = ActionType.SPAWN;
-            char[] name = expect(TokenType.IDENTIFIER).identifier_value;
+            String name = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(!character_exists(name)) die("Trying to spawn unknown character '%s'", name);
 
-            char[] emotion = expect(TokenType.IDENTIFIER).identifier_value;
+            String emotion = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(character_has_emotion(name, emotion)) {
                 action.character_name = name;
@@ -623,7 +623,7 @@ fn void parse_statement_block(ActionList* actions) {
 
         case TokenType.KEYWORD_SHOW:
 
-            char[] target = expect(TokenType.IDENTIFIER).identifier_value;
+            String target = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(character_exists(target)) {
                 action.action_type    = ActionType.SET_VISIBILITY;
@@ -640,7 +640,7 @@ fn void parse_statement_block(ActionList* actions) {
 
         case TokenType.KEYWORD_HIDE:
 
-            char[] target = expect(TokenType.IDENTIFIER).identifier_value;
+            String target = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(character_exists(target)) {
                 action.action_type    = ActionType.SET_VISIBILITY;
@@ -697,7 +697,7 @@ fn void parse_statement_block(ActionList* actions) {
         case TokenType.KEYWORD_BACKGROUND:
             action.action_type = ActionType.SET_BACKGROUND;
 
-            char[] background_name = expect(TokenType.IDENTIFIER).identifier_value;
+            String background_name = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(!common::background_exists(background_name)) die("Referencing non-existent background '%s'", background_name);
 
@@ -707,7 +707,7 @@ fn void parse_statement_block(ActionList* actions) {
         case TokenType.KEYWORD_FACE:
             action.action_type = ActionType.FACE;
 
-            char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+            String character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(!character_exists(character_name)) die("Trying to face non-existent character '%s'", character_name);
 
@@ -718,7 +718,7 @@ fn void parse_statement_block(ActionList* actions) {
         case TokenType.KEYWORD_PLAY_MUSIC:
             action.action_type = ActionType.PLAY_MUSIC;
 
-            char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+            String music_name = expect(TokenType.IDENTIFIER).identifier_value;
 
             action.music_index = {|
                 if(try maybe_index = common::get_music_index_by_name(music_name)) return maybe_index;
@@ -730,7 +730,7 @@ fn void parse_statement_block(ActionList* actions) {
         case TokenType.KEYWORD_STOP_MUSIC:
             action.action_type = ActionType.STOP_MUSIC;
 
-            char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+            String music_name = expect(TokenType.IDENTIFIER).identifier_value;
 
             action.music_index = {|
                 if(try maybe_index = common::get_music_index_by_name(music_name)) return maybe_index;
@@ -741,7 +741,7 @@ fn void parse_statement_block(ActionList* actions) {
             expect(TokenType.SEMICOLON);
         case TokenType.IDENTIFIER:
             action.action_type = ActionType.SAY;
-            char[] character_name = current_token.identifier_value;
+            String character_name = current_token.identifier_value;
 
             if(!character_exists(character_name)) die("Trying to talk as non-existent character '%s'", character_name);
 
@@ -800,7 +800,7 @@ fn void parse_flag() {
 fn void parse_character() {
 
     // TODO: Handle redefinition of character
-    char[] character_name = expect(TokenType.IDENTIFIER).identifier_value;
+    String character_name = expect(TokenType.IDENTIFIER).identifier_value;
 
     int count = 0;
     while(true) {
@@ -813,8 +813,8 @@ fn void parse_character() {
                 break;
             }
         } else if(current_token.token_type == TokenType.STRING_LITERAL) {
-            char[] filename = current_token.string_value; // @cleanup validate filename
-            char[] emotion  = expect(TokenType.IDENTIFIER).identifier_value;
+            String filename = current_token.string_value; // @cleanup validate filename
+            String emotion  = expect(TokenType.IDENTIFIER).identifier_value;
 
             if(character_exists(character_name) && character_has_emotion(character_name, emotion)) {
                 die("Redefinition of emotion '%s' for character '%s'", emotion, character_name);
@@ -846,21 +846,21 @@ fn void parse_character() {
 }
 
 fn void parse_background() {
-    char[] background_name = expect(TokenType.IDENTIFIER).identifier_value;
+    String background_name = expect(TokenType.IDENTIFIER).identifier_value;
     if(common::background_exists(background_name)) die("Redefinition of existing background named '%s'", background_name);
 
-    char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
+    String filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
     expect(TokenType.SEMICOLON);
 
     common::background_name_table[background_name] = common::push_sprite_data(SpriteData { .filename = filename, .needs_flip = false });
 }
 
 fn void parse_music() {
-    char[] music_name = expect(TokenType.IDENTIFIER).identifier_value;
+    String music_name = expect(TokenType.IDENTIFIER).identifier_value;
 
     if(common::music_exists(music_name)) die("Redefinition of existing music named '%s'", music_name);
 
-    char[] filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
+    String filename = expect(TokenType.STRING_LITERAL).string_value; // @cleanup validate filename
     expect(TokenType.SEMICOLON);
 
     common::music_data_list.push(MusicData {

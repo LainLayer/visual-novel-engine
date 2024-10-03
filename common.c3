@@ -23,7 +23,7 @@ macro Rectangle Rectangle.shrink(rectangle, float n) {
 }
 
 struct SpriteData {
-    char[]    filename;
+    String    filename;
     Texture2D texture;
     Image     image;
     bool      needs_flip;
@@ -41,8 +41,8 @@ macro SpriteDataIndex push_sprite_data(SpriteData data) {
 
 struct MusicData {
     Music  music;
-    char[] name;
-    char[] filename;
+    String name;
+    String filename;
 }
 
 List(<MusicData>) music_data_list;
@@ -53,7 +53,7 @@ const MusicDataIndex NO_MUSIC = ~0;
 
 MusicDataIndex current_music = NO_MUSIC;
 
-fn bool music_exists(char[] name) {
+fn bool music_exists(String name) {
     foreach(MusicData music_data : music_data_list) {
         if(music_data.name == name) return true;
     }
@@ -65,7 +65,7 @@ fault SomeFaultIGuess {
     MUSIC_NOT_FOUND,
 }
 
-fn MusicDataIndex! get_music_index_by_name(char[] name) {
+fn MusicDataIndex! get_music_index_by_name(String name) {
     for(MusicDataIndex i = 0; i < music_data_list.len(); i++) {
         if(music_data_list[i].name == name) return i;
     }
@@ -85,18 +85,18 @@ const Direction DEFAULT_DIRECTION = Direction.LEFT;
 struct Character {
     Vector2   position;
     bool      visible;
-    char[]    current_emotion;
-    char[]    name;
+    String    current_emotion;
+    String    name;
     Direction direction;
 
-    HashMap(<char[], SpriteDataIndex>) emotion_sprite_table;
+    HashMap(<String, SpriteDataIndex>) emotion_sprite_table;
 }
 
 def CharacterIndex = uint;
 List(<Character>) characters;
-HashMap(<char[], CharacterIndex>) character_name_table;
+HashMap(<String, CharacterIndex>) character_name_table;
 
-macro Character* get_character_by_name(char[] name) {
+macro Character* get_character_by_name(String name) {
     return &characters[common::character_name_table[name]!!];
 }
 
@@ -109,9 +109,9 @@ AnimationIndex current_animation = IDLE_ANIMATION;
 const SpriteDataIndex INVALID_BACKGROUND = ~0;
 SpriteDataIndex current_background = INVALID_BACKGROUND;
 
-HashMap(<char[], SpriteDataIndex>) background_name_table;
+HashMap(<String, SpriteDataIndex>) background_name_table;
 
-macro bool background_exists(char[] name) {
+macro bool background_exists(String name) {
     return background_name_table.has_key(name);
 }
 
@@ -125,8 +125,8 @@ const float LINE_SPACING =  5.0;
 struct TextAnimation {
     float duration;
     float step;
-    char[] text;
-    char[] said_by;
+    String text;
+    String said_by;
 }
 
 bool show_text_box = true;
