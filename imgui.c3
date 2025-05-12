@@ -59,6 +59,13 @@ extern fn void begin(ZString   title,
 extern fn void end()                                         @extern("igEnd");
 extern fn void show_demo_window(bool*)                       @extern("igShowDemoWindow");
 extern fn void text(ZString)                                 @extern("igText");
+macro void textf(String format, args...) @format(0)
+{
+	@pool()
+	{
+		text(string::tformat_zstr(format, ...args));
+	};
+}
 extern fn bool button(ZString, ImVec2 size = {0.0, 0.0})     @extern("igButton");
 extern fn bool begin_tab_bar(ZString, SomeFlags flag = 0)    @extern("igBeginTabBar");
 extern fn void end_tab_bar()                                 @extern("igEndTabBar");

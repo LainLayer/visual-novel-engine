@@ -216,23 +216,22 @@ fn void animation_list_debug_tab() {
                 @pool() {
 
                     imgui::table_set_column_index(0);
-                    imgui::text(string::tformat_zstr("%d", index));
+                    imgui::textf("%d", index);
 
                     imgui::table_set_column_index(1);
-                    imgui::text(string::tformat_zstr("%s", animation.animation_type));
+                    imgui::textf("%s", animation.animation_type);
 
                     imgui::table_set_column_index(2);
                     switch(animation.animation_type) {
                     case SEQUENCE:
                     case GROUP:
-                        imgui::text(string::tformat_zstr("animations: %s", animation.animations));
+                        imgui::textf("animations: %s", animation.animations);
 
                     case LOOP:
-                        imgui::text(string::tformat_zstr("animation: %s", animation.animation_to_loop));
+                        imgui::textf("animation: %s", animation.animation_to_loop);
 
                     case SLIDE:
-                        imgui::text(string::tformat_zstr(
-                            "character: %s, slide from %d,%d to %d,%d, over %.2f seconds",
+                        imgui::textf("character: %s, slide from %d,%d to %d,%d, over %.2f seconds",
                             common::characters[animation.character_index].name,
                             animation.slide_from.x,
                             animation.slide_from.y,
@@ -240,27 +239,27 @@ fn void animation_list_debug_tab() {
                             animation.slide_to.y,
                             animation.duration
 
-                        ));
+                        );
 
                         imgui::table_set_column_index(3);
 
-                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+                        imgui::textf("%.2f", animation.step);
 
                     case PAUSE:
-                        imgui::text(string::tformat_zstr("duration: %d", animation.duration));
+                        imgui::textf("duration: %d", animation.duration);
 
                         imgui::table_set_column_index(3);
-                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+                        imgui::textf("%.2f", animation.step);
 
                     case TURN:
-                        imgui::text(string::tformat_zstr(
+                        imgui::textf(
                             "character: %s, turn %s",
                             common::characters[animation.character_index].name,
                             animation.turn_to.value
-                        ));
+                        );
 
                         imgui::table_set_column_index(3);
-                        imgui::text(string::tformat_zstr("%.2f", animation.step));
+                        imgui::textf("%.2f", animation.step);
 
                     case IDLE:
                     }
@@ -293,24 +292,24 @@ fn void Animation.imgui_debug_visualize(&animation, AnimationIndex list_index) {
                 animation_list[animation.animation_to_loop].imgui_debug_visualize(list_index);
             case SLIDE:
                 imgui::same_line();
-                imgui::text(string::tformat_zstr(
+                imgui::textf(
                     "slide '%s' from %.2f,%.2f to %.2f,%.2f",
                     common::characters[animation.character_index].name,
                     animation.slide_from.x,
                     animation.slide_from.y,
                     animation.slide_to.x,
                     animation.slide_to.y
-                ));
+                );
                 imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
             case PAUSE:
                 imgui::progress_bar(animation.step / animation.duration, {0.0, 0.0}, null);
             case TURN:
                 imgui::same_line();
-                imgui::text(string::tformat_zstr(
+                imgui::textf(
                     "turn '%s' %s",
                     common::characters[animation.character_index].name,
                     animation.turn_to.value
-                ));
+                );
                 imgui::progress_bar(animation.step, { 0.0, 0.0 }, null);
             case IDLE: break;
             }
